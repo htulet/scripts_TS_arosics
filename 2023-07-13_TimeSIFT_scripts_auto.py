@@ -157,7 +157,7 @@ def merge_chunk_with_same_date(doc = scan.Document()):
 
     
 
-def process_splited_TimeSIFT_chunks_one_by_one(doc = scan.Document(), pathDIR=None, out_dir_ortho = None, out_dir_DEM = None, counter = 0, site_name=None, resol_ref = None, crs = None):
+def process_splited_TimeSIFT_chunks_one_by_one(doc = scan.Document(), pathDIR=None, out_dir_ortho = None, out_dir_DEM = None, site_name=None, resol_ref = None, crs = None):
   TS_chunks = [chk for chk in doc.chunks if (re.search("TimeSIFT", chk.label) is None)]
   TS_chunks = [chk for chk in TS_chunks if chk.enabled]
   TS_chunk_names=[chk.label for chk in TS_chunks]
@@ -179,21 +179,20 @@ def process_splited_TimeSIFT_chunks_one_by_one(doc = scan.Document(), pathDIR=No
     print("Total process time for the image : ", t_ortho - start_time)
     proj = scan.OrthoProjection()
     proj.type=scan.OrthoProjection.Type.Planar
-    proj.crs=scan.CoordinateSystem(crs)#EPSG::32622
+    proj.crs=scan.CoordinateSystem(crs)
     img_compress=scan.ImageCompression
     img_compress.tiff_compression=scan.ImageCompression.TiffCompressionLZW
     img_compress.tiff_big = True
-    doc.save(os.path.join(out_dir_ortho, 'temp.psx'))
+    #doc.save(os.path.join(out_dir_ortho, '_temp_.psx'))
     try :
-        NewChunk.exportRaster(os.path.join(out_dir_ortho, f"ID{counter}{site_name}_{str(NewChunk.label)}_ORTHO.tif"),source_data=scan.OrthomosaicData, image_format=scan.ImageFormatTIFF,
+        NewChunk.exportRaster(os.path.join(out_dir_ortho, f"{str(NewChunk.label)}{site_name}_ORTHO.tif"),source_data=scan.OrthomosaicData, image_format=scan.ImageFormatTIFF,
                               projection=proj, resolution=resol_ref,clip_to_boundary=True,save_alpha=False, split_in_blocks = False)
     except:
-        NewChunk.exportRaster(os.path.join(out_dir_ortho, f"ID{counter}{site_name}_{str(NewChunk.label)}_ORTHO.tif"),source_data=scan.OrthomosaicData, image_format=scan.ImageFormatTIFF,
+        NewChunk.exportRaster(os.path.join(out_dir_ortho, f"{str(NewChunk.label)}{site_name}_ORTHO.tif"),source_data=scan.OrthomosaicData, image_format=scan.ImageFormatTIFF,
                                   projection=proj, resolution=resol_ref,clip_to_boundary=True,save_alpha=False, split_in_blocks = True, block_width=10000, block_height=10000)
-    NewChunk.exportRaster(os.path.join(out_dir_ortho, f"ID{counter}{site_name}_{str(NewChunk.label)}_ORTHO.tif"),source_data=scan.OrthomosaicData, image_format=scan.ImageFormatTIFF,
-                          projection=proj, resolution=resol_ref,clip_to_boundary=True, save_alpha=False)
+
     if out_dir_DEM is not None:
-        NewChunk.exportRaster(os.path.join(out_dir_DEM, f"ID{counter}{site_name}_{str(NewChunk.label)}_DEM.tif"),source_data=scan.ElevationData, image_format=scan.ImageFormatTIFF,
+        NewChunk.exportRaster(os.path.join(out_dir_DEM, f"{str(NewChunk.label)}{site_name}_DEM.tif"),source_data=scan.ElevationData, image_format=scan.ImageFormatTIFF,
                               projection=proj, resolution=resol_ref,clip_to_boundary=True, save_alpha=False)
 
 
@@ -202,151 +201,27 @@ def add_all_chunks(doc = scan.Document(), pathDIR=None):
   os.chdir(pathDIR)
   epochs = os.listdir(pathDIR)
   # we select only the non-empty subfolders 
-  epochs = [ep for ep in epochs if not os.path.isfile(ep) and os.listdir(ep) and ep!="20221108_P15" and ep!="20211018_Sud" and ep!="20210208_Nord"]
+  epochs = [ep for ep in epochs if not os.path.isfile(ep) and os.listdir(ep)]
   print(epochs)
   # We remove all existing chunks and add them one by one
   for chk in doc.chunks:
     doc.remove(chk)
   for ep in epochs: 
     add_TimeSIFT_chunk(doc, epoch_name=ep)
-  
+       
+
 def Time_SIFT_process(pathDIR,
-                      dir_out, 
+                      out_dir_ortho, 
+                      out_dir_DEM=None,      #""
+                      out_dir_project=None,    #""
                       data_type="RGB",
                       resol_ref=0.05, 
                       crs="EPSG::32622", 
                       site_name = "",
-                      save_MS_project = False,
                       calibrate_col = True,
                       doc = scan.Document(),
                       ):
-    assert data_type in ["RGB", "MS"]
-
-    #for file naming purposes
-    if site_name != "":
-       site_name = "_" + site_name
-        
-    # Initialize counter or load it if it exists
-    counter_dir = os.path.join(dir_out, '.metadata')
-    if not os.path.exists(counter_dir):
-        os.mkdir(counter_dir)
-    counter_file = os.path.join(counter_dir, '.project_counter.txt')
-    counter = 0
-    if os.path.exists(counter_file):
-        with open(counter_file, 'r') as file:
-            counter = int(file.read())
-    # Increment the counter
-    counter += 1
-    # Create all required directories if they don't already exist   
-    if not os.path.exists(dir_out):
-        os.mkdir(dir_out)
-    if not os.path.exists(os.path.join(dir_out, f"Project{counter}{site_name}")):
-        os.mkdir(os.path.join(dir_out, f"Project{counter}{site_name}"))
-    out_dir_ortho = os.path.join(dir_out, f"Project{counter}{site_name}", "ORTHO")
-    out_dir_DEM = os.path.join(dir_out, f"Project{counter}{site_name}", "DEM")
-    if not os.path.exists(out_dir_ortho):
-        os.mkdir(out_dir_ortho)
-    if not os.path.exists(out_dir_DEM):
-        os.mkdir(out_dir_DEM)
-
-    # Update the counter file
-    with open(counter_file, 'w') as file:
-        file.write(str(counter))
-
-    start_time = time.time()
-    if data_type == "RGB" :
-        add_all_chunks(doc, pathDIR = pathDIR)
-        merge_chunk_TimeSIFT(doc)
-        t_add_data = time.time()
-        print("Temps écoulé pour le chargement et la fusion des photos : ", t_add_data - start_time)
-        #complete_process_RGB(doc=doc, pathDIR=pathDIR, resol_ref=resol_ref, crs=crs)
-    elif data_type == "MS" :
-        add_all_MS_photos(doc, pathDIR = pathDIR)
-        t_add_data = time.time()
-        print("Temps écoulé pour le chargement des photos : ", t_add_data - start_time)
-        #complete_process_MS(doc=doc, pathDIR=pathDIR, resol_ref=resol_ref, crs=crs)
     
-
-    
-    align_TimeSIFT_chunk(doc)
-    t_align = time.time()
-    print("Temps écoulé pour l'alignement : ", t_align - t_add_data)
-    
-   #Color calibration
-    if calibrate_col and data_type=='RGB':
-        TS_chunk = [chk for chk in doc.chunks if (re.search("TimeSIFT", chk.label) is not None)][0]
-        TS_chunk.calibrateColors(scan.PointCloudData, white_balance=False)
-    
-    #The project needs to be saved before building DEMs and orthomosaics
-    doc.save(os.path.join(dir_out, f"Project{counter}{site_name}", 'temp.psx'))
-    
-    split_TimeSIFT_chunk(doc)
-    merge_chunk_with_same_date(doc)
-    t_split = time.time()
-    print("Temps écoulé pour la division et regroupement par date : ", t_split - t_align)
-    process_splited_TimeSIFT_chunks_one_by_one(doc, pathDIR = pathDIR, out_dir_ortho = out_dir_ortho, out_dir_DEM = out_dir_DEM, counter = counter, site_name = site_name, resol_ref = resol_ref, crs = crs)
-    print("Temps écoulé pour le process final : ", time.time() - t_split)
-    print("Temps écoulé pour la pipeline complète : ", time.time() - start_time)
-    
-    os.remove(os.path.join(dir_out, f"Project{counter}{site_name}", 'temp.psx'))
-    #shutil.rmtree(os.path.join(dir_out, f"Project{counter}{site_name}", "temp.files"))
-    
-    if save_MS_project :
-        doc.save(os.path.join(os.path.join(dir_out, f"Project{counter}{site_name}"), f"Project_{counter}_{site_name}.psx"))
-
-def temp_func_2(doc = scan.Document(), pathDIR=None, out_dir_ortho = None, out_dir_DEM = None, counter = 7, site_name=None, resol_ref = 0.05, crs = None):     #resume progress if project saved right after alignement
-    if out_dir_DEM is not None:  
-        if out_dir_DEM == "" :
-           out_dir_DEM = os.path.join(os.path.dirname(out_dir_ortho), "DEM")
-        if not os.path.exists(out_dir_DEM):
-           os.mkdir(out_dir_DEM)
-    doc.open(os.path.join(out_dir_ortho, 'temp.psx'))
-    split_TimeSIFT_chunk(doc)
-    #merge_chunk_with_same_date(doc)
-    t_split = time.time()
-    doc.save(os.path.join(out_dir_ortho, 'temp.psx'))
-    #print("Temps écoulé pour la division et regroupement par date : ", t_split - t_align)
-    process_splited_TimeSIFT_chunks_one_by_one(doc, pathDIR = pathDIR, out_dir_ortho = out_dir_ortho, out_dir_DEM = out_dir_DEM, counter = counter, site_name = site_name, resol_ref = resol_ref, crs = crs)
-    print("Temps écoulé pour le process final : ", time.time() - t_split)
-    
-
-def temp_func_3(doc = scan.Document(), pathDIR=None, out_dir_ortho = None, out_dir_DEM = None, counter = 5, site_name=None, resol_ref = 0.05, crs = None):   #test split MS
-    if not os.path.exists(out_dir_ortho):
-        os.mkdir(out_dir_ortho)
-    if out_dir_DEM is not None:  
-        if out_dir_DEM == "" :
-           out_dir_DEM = os.path.join(os.path.dirname(out_dir_ortho), "DEM")
-        if not os.path.exists(out_dir_DEM):
-           os.mkdir(out_dir_DEM)
-    doc.open(pathDIR)
-    TS_chunks = [chk for chk in doc.chunks if (re.search("TimeSIFT", chk.label) is None)][:-1]
-    TS_chunks = [chk for chk in TS_chunks if chk.enabled]
-    TS_chunk_names=[chk.label for chk in TS_chunks]
-    print(TS_chunk_names)
-    for chk in TS_chunks:
-        NewChunk=chk
-        proj = scan.OrthoProjection()
-        proj.type=scan.OrthoProjection.Type.Planar
-        proj.crs=scan.CoordinateSystem(crs)#EPSG::32622
-        img_compress=scan.ImageCompression
-        img_compress.tiff_compression=scan.ImageCompression.TiffCompressionLZW
-        img_compress.tiff_big = True
-        #doc.save(os.path.join(out_dir_ortho, 'temp.psx'))
-        NewChunk.exportRaster(os.path.join(out_dir_ortho, f"ID{counter}{site_name}_{str(NewChunk.label)}_ORTHO.tif"),source_data=scan.OrthomosaicData, image_format=scan.ImageFormatTIFF,
-                          projection=proj, resolution=resol_ref,clip_to_boundary=True,save_alpha=False, split_in_blocks = True, block_width=12000, block_height=12000)
-        
-
-def Time_SIFT_process_v2(pathDIR,
-                         out_dir_ortho, 
-                         out_dir_DEM=None,      #""
-                         out_dir_project=None,    #""
-                         data_type="RGB",
-                         resol_ref=0.05, 
-                         crs="EPSG::32622", 
-                         site_name = "",
-                         calibrate_col = True,
-                         doc = scan.Document(),
-                          ):
     assert data_type in ["RGB", "MS"]
     #for file naming purposes
     if site_name != "":
@@ -360,22 +235,8 @@ def Time_SIFT_process_v2(pathDIR,
            out_dir_DEM = os.path.join(os.path.dirname(out_dir_ortho), "DEM")
         if not os.path.exists(out_dir_DEM):
            os.mkdir(out_dir_DEM)
-      
-    # Initialize counter or load it if it exists
-    counter_dir = os.path.join(out_dir_ortho, '.metadata')
-    if not os.path.exists(counter_dir):
-        os.mkdir(counter_dir)
-    
-    counter_file = os.path.join(counter_dir, '.project_counter.txt') 
-    counter = 0
-    if os.path.exists(counter_file):
-        with open(counter_file, 'r') as file:
-            counter = int(file.read())
-    # Increment the counter
-    counter += 1
-    # Update the counter file
-    with open(counter_file, 'w') as file:
-        file.write(str(counter))
+
+    #TODO : store all times into log file, or add progress bars
     start_time = time.time()
     if data_type == "RGB" :
         add_all_chunks(doc, pathDIR = pathDIR)
@@ -393,32 +254,32 @@ def Time_SIFT_process_v2(pathDIR,
     print("Temps écoulé pour l'alignement : ", t_align - t_add_data)
     
     #The project needs to be saved before building DEMs and orthomosaics
-    doc.save(os.path.join(out_dir_ortho, 'temp.psx'))
+    doc.save(os.path.join(out_dir_ortho, '_temp_.psx'))
 
     #Color calibration
     if calibrate_col and data_type=='RGB':
         TS_chunk = [chk for chk in doc.chunks if (re.search("TimeSIFT", chk.label) is not None)][0]
         TS_chunk.calibrateColors(scan.TiePointsData, white_balance=True)
 
-    doc.save(os.path.join(out_dir_ortho, 'temp.psx'))
+    doc.save(os.path.join(out_dir_ortho, '_temp_.psx'))
     
     split_TimeSIFT_chunk(doc)
     #merge_chunk_with_same_date(doc)
     t_split = time.time()
     #print("Temps écoulé pour la division et regroupement par date : ", t_split - t_align)
-    process_splited_TimeSIFT_chunks_one_by_one(doc, pathDIR = pathDIR, out_dir_ortho = out_dir_ortho, out_dir_DEM = out_dir_DEM, counter = counter, site_name = site_name, resol_ref = resol_ref, crs = crs)
+    process_splited_TimeSIFT_chunks_one_by_one(doc, pathDIR = pathDIR, out_dir_ortho = out_dir_ortho, out_dir_DEM = out_dir_DEM, site_name = site_name, resol_ref = resol_ref, crs = crs)
     print("Temps écoulé pour le process final : ", time.time() - t_split)
     print("Temps écoulé pour la pipeline complète : ", time.time() - start_time)
-    doc.save(os.path.join(out_dir_ortho, 'temp.psx'))
+    doc.save(os.path.join(out_dir_ortho, '_temp_.psx'))
     
     if out_dir_project is not None :
         if out_dir_project == "" :
             out_dir_project = out_dir_ortho
         if not os.path.exists(out_dir_project):
             os.mkdir(out_dir_project)
-        doc.save(os.path.join(os.path.join(out_dir_project, f"Project_{counter}_{site_name}.psx")))
+        doc.save(os.path.join(out_dir_project, f"Metashape_Project_{site_name}.psx"))
         
-    #os.remove(os.path.join(out_dir_ortho, 'temp.psx'))
+    #os.remove(os.path.join(out_dir_ortho, '_temp_.psx'))
     #shutil.rmtree(os.path.join(out_dir_ortho, 'temp.files'))
     
 
@@ -427,7 +288,7 @@ try:
     #doc = scan.Document()
     #complete_process_RGB(doc, pathDIR="Y:\RGB", resol_ref=0.05, crs="EPSG::32622")
     print("args : ", args)
-    Time_SIFT_process_v2(pathDIR="Y:/RGB/RGB", out_dir_ortho= "Z:/shared/PhenOBS/Paracou/Metashape/RGB_Broad_Mosaics/4D_050324/ORTHO", out_dir_DEM= "Z:/shared/PhenOBS/Paracou/Metashape/RGB_Broad_Mosaics/4D_050324/DEM", 
+    Time_SIFT_process(pathDIR="Y:/RGB/RGB", out_dir_ortho= "Z:/shared/PhenOBS/Paracou/Metashape/RGB_Broad_Mosaics/4D_050324/ORTHO", out_dir_DEM= "Z:/shared/PhenOBS/Paracou/Metashape/RGB_Broad_Mosaics/4D_050324/DEM", 
                          data_type="RGB", resol_ref=0.05, crs="EPSG::32622")
     #complete_process_and_save(doc, pathDIR = args.path_in, resol_ref = args.resol_ref, crs = args.crs, doc)
     #complete_process_MS(doc, pathDIR="Y:\MS\P4M\batch_test", resol_ref=0.05, crs="EPSG::32622")
