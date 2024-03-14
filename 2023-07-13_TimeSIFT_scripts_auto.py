@@ -30,6 +30,20 @@ parser.add_argument('--resol_ref')
 parser.add_argument('--data_type')
 args = parser.parse_args()
 
+
+def str2bool(v):
+    if v is None or isinstance(v, bool):
+        return v
+    if v.lower()=='none':
+        return None
+    elif v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+    
+
 def add_TimeSIFT_chunk(doc = scan.Document(), epoch_name="2019-05-23"):
     if epoch_name !="no":
         if len([chk for chk in doc.chunks if re.search(epoch_name,chk.label) is not None])==0:
@@ -137,7 +151,7 @@ def split_TimeSIFT_chunk(doc = scan.Document()):
             t = [pattern in cam.label for cam in NewChunk.cameras]
             list_cameras = [NewChunk.cameras[i] for i, x in enumerate(t) if not x]
             NewChunk.remove(list_cameras)
-
+"""
 def merge_chunk_with_same_date(doc = scan.Document()):
     dates = []
     Non_ts_chunks = [chk for chk in doc.chunks if re.search("TimeSIFT",chk.label) is None]
@@ -148,13 +162,12 @@ def merge_chunk_with_same_date(doc = scan.Document()):
     print("Dates : ", dates)
     for date in dates:
       chunks_to_merge = [chk.key for chk in Non_ts_chunks if chk.label[:8]==date]
-      chk_sel = chunks_to_merge[0]
       doc.mergeChunks(chunks=chunks_to_merge)
       merged_chunk = doc.chunks[-1]
       merged_chunk.label = date
       for chk in [chk for chk in Non_ts_chunks if chk.label[:8]==date]:  
         doc.remove(chk)
-
+"""
     
 
 def process_splited_TimeSIFT_chunks_one_by_one(doc = scan.Document(), pathDIR=None, out_dir_ortho = None, out_dir_DEM = None, site_name=None, resol_ref = None, crs = None):
@@ -202,14 +215,13 @@ def add_all_chunks(doc = scan.Document(), pathDIR=None):
   epochs = os.listdir(pathDIR)
   # we select only the non-empty subfolders 
   epochs = [ep for ep in epochs if not os.path.isfile(ep) and os.listdir(ep)]
-  print(epochs)
   # We remove all existing chunks and add them one by one
   for chk in doc.chunks:
     doc.remove(chk)
   for ep in epochs: 
     add_TimeSIFT_chunk(doc, epoch_name=ep)
        
-
+#TODO : confirm whether or not DEMs and project are to be saved by default
 def Time_SIFT_process(pathDIR,
                       out_dir_ortho, 
                       out_dir_DEM=None,      #""
@@ -226,6 +238,8 @@ def Time_SIFT_process(pathDIR,
     #for file naming purposes
     if site_name != "":
        site_name = "_" + site_name
+
+    calibrate_col = str2bool(calibrate_col)
 
     if not os.path.exists(out_dir_ortho):
         os.mkdir(out_dir_ortho)

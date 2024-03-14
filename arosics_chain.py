@@ -25,9 +25,11 @@ parser.add_argument('--apply_matrix', default=True)
 args = parser.parse_args()
 
 def str2bool(v):
-    if isinstance(v, bool):
+    if v is None or isinstance(v, bool):
         return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+    if v.lower()=='none':
+        return None
+    elif v.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
     elif v.lower() in ('no', 'false', 'f', 'n', '0'):
         return False
