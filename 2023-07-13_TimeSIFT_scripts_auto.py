@@ -19,7 +19,7 @@ import time
 import argparse
 import shutil
 
-#scan.License().activate('E2TL6-7YYPS-9GUPV-YEGB8-NUPUE')
+#scan.License().activate('your_license_key')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--crs')
@@ -231,6 +231,7 @@ def Time_SIFT_process(pathDIR,
                       crs="EPSG::32622", 
                       site_name = "",
                       calibrate_col = True,
+                      sun_sensor = False,
                       doc = scan.Document(),
                       ):
     
@@ -257,7 +258,11 @@ def Time_SIFT_process(pathDIR,
         merge_chunk_TimeSIFT(doc)
         t_add_data = time.time()
         print("Temps écoulé pour le chargement et la fusion des photos : ", t_add_data - start_time)
-        
+
+    if sun_sensor and data_type=='MS':
+        TS_chunk = [chk for chk in doc.chunks if (re.search("TimeSIFT", chk.label) is not None)][0]
+        TS_chunk.calibrateReflectance(use_sun_sensor=True)
+
     elif data_type == "MS" :
         add_all_MS_photos(doc, pathDIR = pathDIR)
         t_add_data = time.time()
@@ -271,9 +276,11 @@ def Time_SIFT_process(pathDIR,
     doc.save(os.path.join(out_dir_ortho, '_temp_.psx'))
 
     #Color calibration
-    if calibrate_col and data_type=='RGB':
+    if calibrate_col and (data_type=='RGB' or 'MS'):
         TS_chunk = [chk for chk in doc.chunks if (re.search("TimeSIFT", chk.label) is not None)][0]
         TS_chunk.calibrateColors(scan.TiePointsData, white_balance=True)
+    
+
 
     doc.save(os.path.join(out_dir_ortho, '_temp_.psx'))
     
@@ -296,7 +303,7 @@ def Time_SIFT_process(pathDIR,
     #os.remove(os.path.join(out_dir_ortho, '_temp_.psx'))
     #shutil.rmtree(os.path.join(out_dir_ortho, 'temp.files'))
     
-
+"""
 try:
 
     #doc = scan.Document()
@@ -314,4 +321,4 @@ try:
 
 except Exception as e:
     print(f"An error occurred: {e}")
-
+"""

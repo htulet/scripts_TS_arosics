@@ -140,7 +140,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
                 blist.append(tf[5] + tf[4]*meta['height'])
                 glist.append(tf[2])
                 dlist.append(tf[2] + tf[0]*meta['width'])
-            """
+           
             if not (all(x == hlist[0] for x in hlist) and all(x == glist[0] for x in glist)):     #and (np.max(dlist)-np.max(glist)) < 0.9*(np.max(dlist)-np.min(glist)) and (np.min(hlist)-np.max(blist)) < 0.9*(np.max(hlist)-np.max(blist))
                 rm_temp_files=True
                 mask_coords = [np.max(glist), np.min(blist), np.max(dlist), np.min(hlist)]
@@ -170,7 +170,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
                     with rasterio.open(out_path, "w", **file_meta) as ds_ref:
                             ds_ref.write(red_new_img)
                             ds_ref.close()
-            """
+       
             if dynamic_corr :
                 for file in files:
                     current_file_path = os.path.join(path_in, file)

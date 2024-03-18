@@ -8,13 +8,16 @@ TS_script_path <- '2023-07-13_TimeSIFT_scripts_auto.py'
 source_python(arosics_script_path)
 source_python(TS_script_path)
 
+
+
 Time_SIFT_process(pathDIR="Y:/RGB/EPOCHS",
                      data_type='RGB',
                      resol_ref=0.05, 
                      crs="EPSG::32622", 
                      site_name = "",
                      out_dir_ortho = "Z:/users/HadrienTulet/keypoints_test/ORTHO",
-                     out_dir_DEM = "Z:/users/HadrienTulet/keypoints_test/DEM")
+                     out_dir_DEM = "Z:/users/HadrienTulet/keypoints_test/DEM",
+                     calibrate_col = 'True')
                      #out_dir_project = 'None',
               
 
