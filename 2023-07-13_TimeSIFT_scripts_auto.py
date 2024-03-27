@@ -144,10 +144,12 @@ def align_TimeSIFT_chunk(doc = scan.Document()):
     TS_chunk.updateTransform()
     print("Temps écoulé pour l'alignement : ", time.time() - start_time)
 
-def split_TimeSIFT_chunk(doc = scan.Document()):
+def split_TimeSIFT_chunk(doc = scan.Document(), group_by_flight = False):
     TS_chunk = [chk for chk in doc.chunks if (re.search("TimeSIFT", chk.label) is not None)][0]
-    #TS_chunk_names=np.unique([cam.label.split("_EPOCH_")[0] for cam in TS_chunk.cameras])
-    TS_chunk_names=np.unique([re.search(r'\d+', cam.label).group() for cam in TS_chunk.cameras])
+    if group_by_flight:
+        TS_chunk_names=np.unique([cam.label.split("_EPOCH_")[0] for cam in TS_chunk.cameras])
+    else:
+        TS_chunk_names=np.unique([re.search(r'\d+', cam.label).group() for cam in TS_chunk.cameras])
     print(TS_chunk_names)
     for chk_name in TS_chunk_names:
         if len([chk for chk in doc.chunks if re.search(chk_name,chk.label) is not None])==0:
@@ -234,6 +236,7 @@ def Time_SIFT_process(pathDIR,
                       site_name = "",
                       calibrate_col = True,
                       sun_sensor = False,
+                      group_by_flight = False,
                       doc = scan.Document(),
                       ):
     
@@ -286,7 +289,7 @@ def Time_SIFT_process(pathDIR,
 
     doc.save(os.path.join(out_dir_ortho, '_temp_.psx'))
     
-    split_TimeSIFT_chunk(doc)
+    split_TimeSIFT_chunk(doc, group_by_flight = group_by_flight)
     #merge_chunk_with_same_date(doc)
     t_split = time.time()
     #print("Temps écoulé pour la division et regroupement par date : ", t_split - t_align)
