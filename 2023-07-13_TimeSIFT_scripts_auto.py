@@ -42,28 +42,40 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
-    
 
-def add_TimeSIFT_chunk(doc = scan.Document(), epoch_name="2019-05-23"):
-    if epoch_name !="no":
-        if len([chk for chk in doc.chunks if re.search(epoch_name,chk.label) is not None])==0:
-            doc.addChunk()
-            chunk=doc.chunks[len(doc.chunks)-1]
-            chunk.label=epoch_name
-            [f for f in os.listdir(epoch_name) if os.path.isfile(os.path.join(epoch_name, f))]
-            dirName=epoch_name
-            listOfFiles = list()
-            for (dirpath, dirnames, filenames) in os.walk(dirName):
-                listOfFiles += [os.path.join(dirpath, file) for file in filenames]
 
-            chunk.addPhotos(listOfFiles)
-            for cam in chunk.cameras:
-                cam.label = (str(chunk.label) + "_EPOCH_" + cam.label)
-        
+def add_all_chunks(doc = scan.Document(), pathDIR=None):
+    print(pathDIR)
+    os.chdir(pathDIR)
+    epochs = os.listdir(pathDIR)
+    # we select only the non-empty subfolders 
+    epochs = [ep for ep in epochs if not os.path.isfile(ep) and os.listdir(ep)]
+    # We remove all existing chunks and add them one by one
+    for chk in doc.chunks:
+        doc.remove(chk)
+    for ep in epochs: 
+        add_TimeSIFT_chunk(doc, epoch_name=ep)
+
+
+def add_TimeSIFT_chunk(doc = scan.Document(), epoch_name=""):
+    if len([chk for chk in doc.chunks if re.search(epoch_name,chk.label) is not None])==0:
+        doc.addChunk()
+        chunk=doc.chunks[len(doc.chunks)-1]
+        chunk.label=epoch_name
+        [f for f in os.listdir(epoch_name) if os.path.isfile(os.path.join(epoch_name, f))]
+        dirName=epoch_name
+        listOfFiles = list()
+        for (dirpath, dirnames, filenames) in os.walk(dirName):
+            listOfFiles += [os.path.join(dirpath, file) for file in filenames]
+
+        chunk.addPhotos(listOfFiles)
+        for cam in chunk.cameras:
+            cam.label = (str(chunk.label) + "_EPOCH_" + cam.label)
+
+
+
 def add_all_MS_photos(doc = scan.Document(), pathDIR=None):
-    if pathDIR is None :
-        pathDIR=scan.app.getExistingDirectory("select the folder where the different epochs folders are located")
-        print(pathDIR)
+    print(pathDIR)
     os.chdir(pathDIR)
     for chk in doc.chunks:
         doc.remove(chk)
@@ -77,7 +89,7 @@ def add_all_MS_photos(doc = scan.Document(), pathDIR=None):
     for i in range(len(epochs)):
         L = len(chunk.cameras)
         epoch_name = epochs[i]
-        # Pour chaque epoch, on créé un groupe de cameras
+        # We create one camera group per epoch
         chunk.addCameraGroup()
         cam_group = chunk.camera_groups[-1]
         cam_group.label = epoch_name
@@ -87,31 +99,26 @@ def add_all_MS_photos(doc = scan.Document(), pathDIR=None):
         for (dirpath, dirnames, filenames) in os.walk(dirName):
             listOfFiles += [os.path.join(dirpath, file) for file in filenames]
         
-        # on ajoute toutes les photos liées à une même epoch dans le groupe de cameras correspondant
+        # We add all photos from the same epoch into the corresponding camera group 
         chunk.addPhotos(listOfFiles, layout = scan.MultiplaneLayout, group = i)  
         for cam in chunk.cameras[L:]:
             cam.label = (str(epoch_name) + "_EPOCH_" + cam.label)  
-            
-def delete_GPS_exif_chunk(doc = scan.Document()):
-    for chk in doc.chunks:
-      if chk.enabled != True: 
-        for cam in chk.cameras:
-          cam.reference.location=None
+
 
 
 def merge_chunk_TimeSIFT(doc = scan.Document()):
     start_time = time.time()
     for chk_sel in doc.chunks:
-      chunk_non_aligned = [chk.key for chk in doc.chunks if re.search("TimeSIFT", chk.label) is not None]
-      chunk_non_aligned.append(chk_sel.key)
-      doc.mergeChunks(chunks=chunk_non_aligned)
-      TS_chunk = [chk for chk in doc.chunks if re.search("TimeSIFT", chk.label) is not None]
-      doc.remove(TS_chunk)
-      merged_chunk = doc.chunks[-1]
-      merged_chunk.label = "TimeSIFT"
-      doc.remove(chk_sel)
-      for cam in [i for i in merged_chunk.cameras if re.search(chk_sel.label,i.label) is not None]:
-        cam.transform = None
+        chunk_non_aligned = [chk.key for chk in doc.chunks if re.search("TimeSIFT", chk.label) is not None]
+        chunk_non_aligned.append(chk_sel.key)
+        doc.mergeChunks(chunks=chunk_non_aligned)
+        TS_chunk = [chk for chk in doc.chunks if re.search("TimeSIFT", chk.label) is not None]
+        doc.remove(TS_chunk)
+        merged_chunk = doc.chunks[-1]
+        merged_chunk.label = "TimeSIFT"
+        doc.remove(chk_sel)
+        for cam in [i for i in merged_chunk.cameras if re.search(chk_sel.label,i.label) is not None]:
+            cam.transform = None
     print("Temps écoulé pour la fusion : ", time.time() - start_time) 
 
 def align_TimeSIFT_chunk(doc = scan.Document()):
@@ -151,76 +158,71 @@ def split_TimeSIFT_chunk(doc = scan.Document()):
             t = [pattern in cam.label for cam in NewChunk.cameras]
             list_cameras = [NewChunk.cameras[i] for i, x in enumerate(t) if not x]
             NewChunk.remove(list_cameras)
-"""
+
+
 def merge_chunk_with_same_date(doc = scan.Document()):
+    """
+    Not useful anymore. Merging by date now done in split_TIMESift_chunk
+    """
     dates = []
     Non_ts_chunks = [chk for chk in doc.chunks if re.search("TimeSIFT",chk.label) is None]
     for chk in Non_ts_chunks:
-      chunk_date = chk.label[:8]
-      if chunk_date not in dates :
-         dates.append(chunk_date)
+        chunk_date = chk.label[:8]
+        if chunk_date not in dates :
+            dates.append(chunk_date)
     print("Dates : ", dates)
     for date in dates:
-      chunks_to_merge = [chk.key for chk in Non_ts_chunks if chk.label[:8]==date]
-      doc.mergeChunks(chunks=chunks_to_merge)
-      merged_chunk = doc.chunks[-1]
-      merged_chunk.label = date
-      for chk in [chk for chk in Non_ts_chunks if chk.label[:8]==date]:  
-        doc.remove(chk)
-"""
+        chunks_to_merge = [chk.key for chk in Non_ts_chunks if chk.label[:8]==date]
+        doc.mergeChunks(chunks=chunks_to_merge)
+        merged_chunk = doc.chunks[-1]
+        merged_chunk.label = date
+        for chk in [chk for chk in Non_ts_chunks if chk.label[:8]==date]:  
+            doc.remove(chk)
+
     
 
 def process_splited_TimeSIFT_chunks_one_by_one(doc = scan.Document(), pathDIR=None, out_dir_ortho = None, out_dir_DEM = None, site_name=None, resol_ref = None, crs = None):
-  TS_chunks = [chk for chk in doc.chunks if (re.search("TimeSIFT", chk.label) is None)]
-  TS_chunks = [chk for chk in TS_chunks if chk.enabled]
-  TS_chunk_names=[chk.label for chk in TS_chunks]
-  for chk in TS_chunks:
-    start_time = time.time()
-    NewChunk=chk
-    NewChunk.buildDepthMaps(downscale=2, filter_mode=scan.AggressiveFiltering)
-    t_depth_maps = time.time()
-    print("Time to build depth map : ", t_depth_maps - start_time)
-    NewChunk.buildPointCloud(point_colors=True)
-    t_dense_cloud = time.time()
-    print("Time to build dense cloud : ", t_dense_cloud - t_depth_maps)
-    NewChunk.buildDem(source_data=scan.PointCloudData,resolution=resol_ref)
-    t_DEM = time.time()
-    print("Time to build DEM : ", t_DEM - t_dense_cloud)
-    NewChunk.buildOrthomosaic(surface_data=scan.ElevationData,resolution=resol_ref)
-    t_ortho = time.time()
-    print("Time to build ortho : ", t_ortho - t_DEM)
-    print("Total process time for the image : ", t_ortho - start_time)
-    proj = scan.OrthoProjection()
-    proj.type=scan.OrthoProjection.Type.Planar
-    proj.crs=scan.CoordinateSystem(crs)
-    img_compress=scan.ImageCompression
-    img_compress.tiff_compression=scan.ImageCompression.TiffCompressionLZW
-    img_compress.tiff_big = True
-    #doc.save(os.path.join(out_dir_ortho, '_temp_.psx'))
-    try :
-        NewChunk.exportRaster(os.path.join(out_dir_ortho, f"{str(NewChunk.label)}{site_name}_ORTHO.tif"),source_data=scan.OrthomosaicData, image_format=scan.ImageFormatTIFF,
-                              projection=proj, resolution=resol_ref,clip_to_boundary=True,save_alpha=False, split_in_blocks = False)
-    except:
-        NewChunk.exportRaster(os.path.join(out_dir_ortho, f"{str(NewChunk.label)}{site_name}_ORTHO.tif"),source_data=scan.OrthomosaicData, image_format=scan.ImageFormatTIFF,
-                                  projection=proj, resolution=resol_ref,clip_to_boundary=True,save_alpha=False, split_in_blocks = True, block_width=10000, block_height=10000)
+    """
+    Generate depth map, dense cloud, DEM and orthomosaic for one image. Always saves orthomosaic and saves DEM if specified
+    """
+    TS_chunks = [chk for chk in doc.chunks if (re.search("TimeSIFT", chk.label) is None)]
+    TS_chunks = [chk for chk in TS_chunks if chk.enabled]
+    TS_chunk_names=[chk.label for chk in TS_chunks]
+    for chk in TS_chunks:
+        start_time = time.time()
+        NewChunk=chk
+        NewChunk.buildDepthMaps(downscale=2, filter_mode=scan.AggressiveFiltering)
+        t_depth_maps = time.time()
+        print("Time to build depth map : ", t_depth_maps - start_time)
+        NewChunk.buildPointCloud(point_colors=True)
+        t_dense_cloud = time.time()
+        print("Time to build dense cloud : ", t_dense_cloud - t_depth_maps)
+        NewChunk.buildDem(source_data=scan.PointCloudData,resolution=resol_ref)
+        t_DEM = time.time()
+        print("Time to build DEM : ", t_DEM - t_dense_cloud)
+        NewChunk.buildOrthomosaic(surface_data=scan.ElevationData,resolution=resol_ref)
+        t_ortho = time.time()
+        print("Time to build ortho : ", t_ortho - t_DEM)
+        print("Total process time for the image : ", t_ortho - start_time)
+        proj = scan.OrthoProjection()
+        proj.type=scan.OrthoProjection.Type.Planar
+        proj.crs=scan.CoordinateSystem(crs)
+        img_compress=scan.ImageCompression
+        img_compress.tiff_compression=scan.ImageCompression.TiffCompressionLZW
+        img_compress.tiff_big = True
+        #doc.save(os.path.join(out_dir_ortho, '_temp_.psx'))
+        try :
+            NewChunk.exportRaster(os.path.join(out_dir_ortho, f"{str(NewChunk.label)}{site_name}_ORTHO.tif"),source_data=scan.OrthomosaicData, image_format=scan.ImageFormatTIFF,
+                                projection=proj, resolution=resol_ref,clip_to_boundary=True,save_alpha=False, split_in_blocks = False)
+        except:
+            NewChunk.exportRaster(os.path.join(out_dir_ortho, f"{str(NewChunk.label)}{site_name}_ORTHO.tif"),source_data=scan.OrthomosaicData, image_format=scan.ImageFormatTIFF,
+                                    projection=proj, resolution=resol_ref,clip_to_boundary=True,save_alpha=False, split_in_blocks = True, block_width=10000, block_height=10000)
 
-    if out_dir_DEM is not None:
-        NewChunk.exportRaster(os.path.join(out_dir_DEM, f"{str(NewChunk.label)}{site_name}_DEM.tif"),source_data=scan.ElevationData, image_format=scan.ImageFormatTIFF,
-                              projection=proj, resolution=resol_ref,clip_to_boundary=True, save_alpha=False)
+        if out_dir_DEM is not None:
+            NewChunk.exportRaster(os.path.join(out_dir_DEM, f"{str(NewChunk.label)}{site_name}_DEM.tif"),source_data=scan.ElevationData, image_format=scan.ImageFormatTIFF,
+                                projection=proj, resolution=resol_ref,clip_to_boundary=True, save_alpha=False)
 
 
-def add_all_chunks(doc = scan.Document(), pathDIR=None):
-  print(pathDIR)
-  os.chdir(pathDIR)
-  epochs = os.listdir(pathDIR)
-  # we select only the non-empty subfolders 
-  epochs = [ep for ep in epochs if not os.path.isfile(ep) and os.listdir(ep)]
-  # We remove all existing chunks and add them one by one
-  for chk in doc.chunks:
-    doc.remove(chk)
-  for ep in epochs: 
-    add_TimeSIFT_chunk(doc, epoch_name=ep)
-       
 #TODO : confirm whether or not DEMs and project are to be saved by default
 def Time_SIFT_process(pathDIR,
                       out_dir_ortho, 

@@ -90,7 +90,7 @@ def complete_arosics_process_v1(path_in, ref_filepath, out_dir_path, corr_type =
     else:
         raise ValueError(f"The specified path '{path_in}' is not a file nor a directory.")
         
-def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'global', dynamic_corr = False, apply_matrix=True, max_shift=250, max_iter=100, window_size=None, mp=1, grid_res=1000):
+def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'global', dynamic_corr = False, apply_matrix=True, max_shift=250, max_iter=100, window_size=None, mp=0, grid_res=1000):
     assert corr_type in ['global', 'local']
     rm_temp_files = False
     dynamic_corr = str2bool(dynamic_corr)
@@ -140,7 +140,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
                 blist.append(tf[5] + tf[4]*meta['height'])
                 glist.append(tf[2])
                 dlist.append(tf[2] + tf[0]*meta['width'])
-           
+            
             if not (all(x == hlist[0] for x in hlist) and all(x == glist[0] for x in glist)):     #and (np.max(dlist)-np.max(glist)) < 0.9*(np.max(dlist)-np.min(glist)) and (np.min(hlist)-np.max(blist)) < 0.9*(np.max(hlist)-np.max(blist))
                 rm_temp_files=True
                 mask_coords = [np.max(glist), np.min(blist), np.max(dlist), np.min(hlist)]
@@ -170,7 +170,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
                     with rasterio.open(out_path, "w", **file_meta) as ds_ref:
                             ds_ref.write(red_new_img)
                             ds_ref.close()
-       
+                
             if dynamic_corr :
                 for file in files:
                     current_file_path = os.path.join(path_in, file)
@@ -201,9 +201,18 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
         
     else:
         raise ValueError(f"The specified path '{path_in}' is not a file nor a directory.")
-"""   
+
+
 if __name__ == '__main__':
-    complete_arosics_process(path_in = args.path_in, ref_filepath = args.ref_filepath, out_dir_path = args.out_dir_path, corr_type = args.corr_type, dynamic_corr=str2bool(args.dynamic_corr), apply_matrix=str2bool(args.apply_matrix))
-"""    
+
+    complete_arosics_process(path_in = "//amap-data.cirad.fr/work/users/HadrienTulet/tests_arosics/data", 
+                             ref_filepath = "//amap-data.cirad.fr/work/shared/PhenOBS/Paracou/Metashape/RGB_Broad_Mosaics/PARACOU2023_DSM_50cm_filt.tif", 
+                             out_dir_path = "//amap-data.cirad.fr/work/users/HadrienTulet/tests_arosics/apply_matrix_loc_no_mask", 
+                             corr_type = 'local', 
+                             dynamic_corr=False,
+                             apply_matrix=True
+                             )
+
+
  
 
