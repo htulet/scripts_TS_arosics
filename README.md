@@ -29,9 +29,9 @@ Lorem Ipsum
 
 Open an anaconda prompt and type the following commands :
 
-conda env create -n env_name --file='path_to_cloned_repo/scripts_TS_arosics/environment.yaml'
-conda activate env_name
-pip install 'path_to_cloned_repo/scripts_TS_arosics/Metashape-2.1.0-cp37.cp38.cp39.cp310.cp311-none-win_amd64.whl'
+- conda env create -n env_name --file='path_to_cloned_repo/scripts_TS_arosics/environment.yaml'
+- conda activate env_name
+- pip install 'path_to_cloned_repo/scripts_TS_arosics/Metashape-2.1.0-cp37.cp38.cp39.cp310.cp311-none-win_amd64.whl'
 
 
 ### Env R 
