@@ -1,8 +1,9 @@
 library(reticulate)
-path_to_env <- "C:/Users/U051-U219/miniconda3/envs/env_R"
-#use_python(path_to_env)
 
-arosics_script_path <- "Z:/users/HadrienTulet/scripts_TS_arosics/arosics_chain.py"
+path_to_env <- "C:/Users/U051-U219/miniconda3/envs/env_R"       #Put the name of your python environment here
+use_python(path_to_env)
+
+arosics_script_path <- "D:/pipeline_TS/scripts_TS_arosics/arosics_chain.py"
 TS_script_path <- '//amap-data.cirad.fr/work/users/HadrienTulet/scripts_TS_arosics/2023-07-13_TimeSIFT_scripts_auto.py'
 
 source_python(arosics_script_path)
@@ -21,10 +22,11 @@ Time_SIFT_process(pathDIR="Y:/RGB/EPOCHS",
                      #out_dir_project = 'None',
               
 
-complete_arosics_process(path_in = "Z:/shared/PhenOBS/Paracou/Metashape/RGB_Broad_Mosaics/4D_260124/ORTHO",
+complete_arosics_process(path_in = "Z:/shared/PhenOBS/Paracou/Metashape/RGB_Broad_Mosaics/Test_sensibilite/AM/ORTHO",
                          ref_filepath = "Z:/shared/PhenOBS/Paracou/Metashape/RGB_Broad_Mosaics/MNS50cm_Par2019.tif",
-                         out_dir_path = "Z:/shared/PhenOBS/Paracou/Metashape/RGB_Broad_Mosaics/4D_260124/rect_test",
-                         corr_type = 'global',
+                         out_dir_path = "Z:/shared/PhenOBS/Paracou/Metashape/RGB_Broad_Mosaics/Test_sensibilite_rect/Local/AM",
+                         corr_type = 'local',
                          dynamic_corr = 'False',
-                         apply_matrix = 'False')
-
+                         apply_matrix = 'False',
+                         save_vector_plot='True',
+                         save_csv='True')
