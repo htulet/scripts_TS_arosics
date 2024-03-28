@@ -32,7 +32,7 @@ Open an anaconda prompt and type the following commands :
 - conda env create -n env_name --file='path_to_cloned_repo/scripts_TS_arosics/environment.yaml'
 - conda activate env_name
 
-To install the Metashape python API, download the whell file corresponding to your operating system there : https://www.agisoft.com/downloads/installer/
+To install the Metashape python API, download the wheel file corresponding to your operating system here : https://www.agisoft.com/downloads/installer/
 Then, run the following command :
 - pip install 'path_to_downloaded_whl_file'
 
