@@ -5,10 +5,7 @@
 # D. Feurer, F. Vinatier, Joining multi-epoch archival aerial images in a single SfM block allows 3-D change detection with almost exclusively image information, ISPRS Journal of Photogrammetry and Remote Sensing, Volume 146, 2018, Pages 495-506, ISSN 0924-2716, https://doi.org/10.1016/j.isprsjprs.2018.10.016. (http://www.sciencedirect.com/science/article/pii/S0924271618302946)
 
 
-"""
-script manuel : scan.app.document
-script auto : scan.Document(), keep the same thorough whole process
-"""
+
 
 import os
 from os import path
@@ -45,6 +42,9 @@ def str2bool(v):
 
 
 def add_all_chunks(doc = scan.Document(), pathDIR=None):
+    """
+    Loads all RGB photos into the project, one chunk per subfolder in pathDIR
+    """
     print(pathDIR)
     os.chdir(pathDIR)
     epochs = os.listdir(pathDIR)
@@ -58,6 +58,9 @@ def add_all_chunks(doc = scan.Document(), pathDIR=None):
 
 
 def add_TimeSIFT_chunk(doc = scan.Document(), epoch_name=""):
+    """
+    Adds a single RGB chunk to the project
+    """
     if len([chk for chk in doc.chunks if re.search(epoch_name,chk.label) is not None])==0:
         doc.addChunk()
         chunk=doc.chunks[len(doc.chunks)-1]
@@ -75,6 +78,9 @@ def add_TimeSIFT_chunk(doc = scan.Document(), epoch_name=""):
 
 
 def add_all_MS_photos(doc = scan.Document(), pathDIR=None):
+    """
+    Loads all MS photos into the project, one chunk per subfolder in pathDIR
+    """
     print(pathDIR)
     os.chdir(pathDIR)
     for chk in doc.chunks:
@@ -107,6 +113,9 @@ def add_all_MS_photos(doc = scan.Document(), pathDIR=None):
 
 
 def merge_chunk_TimeSIFT(doc = scan.Document()):
+    """
+    Merges all chunks into a single one
+    """
     start_time = time.time()
     for chk_sel in doc.chunks:
         chunk_non_aligned = [chk.key for chk in doc.chunks if re.search("TimeSIFT", chk.label) is not None]
@@ -121,7 +130,11 @@ def merge_chunk_TimeSIFT(doc = scan.Document()):
             cam.transform = None
     print("Temps écoulé pour la fusion : ", time.time() - start_time) 
 
+
 def align_TimeSIFT_chunk(doc = scan.Document()):
+    """
+    Aligns all cameras in the merged chunk
+    """
     start_time = time.time()
     TS_chunk=[chk for chk in doc.chunks if re.search("TimeSIFT",chk.label) is not None][0]
     TS_chunk.matchPhotos(downscale=1, generic_preselection=True, reference_preselection=True,
@@ -144,7 +157,14 @@ def align_TimeSIFT_chunk(doc = scan.Document()):
     TS_chunk.updateTransform()
     print("Temps écoulé pour l'alignement : ", time.time() - start_time)
 
+
 def split_TimeSIFT_chunk(doc = scan.Document(), group_by_flight = False):
+    """
+    After the alignement, splits the merged chunk into smaller chunks, each representing a date (default) or a flight
+
+    Parameters:
+    group_by_flight (bool): If True, regroups data by flight. Else, regroup it by date (default)
+    """
     TS_chunk = [chk for chk in doc.chunks if (re.search("TimeSIFT", chk.label) is not None)][0]
     if group_by_flight:
         TS_chunk_names=np.unique([cam.label.split("_EPOCH_")[0] for cam in TS_chunk.cameras])
@@ -183,9 +203,14 @@ def merge_chunk_with_same_date(doc = scan.Document()):
 
     
 
-def process_splited_TimeSIFT_chunks_one_by_one(doc = scan.Document(), pathDIR=None, out_dir_ortho = None, out_dir_DEM = None, site_name=None, resol_ref = None, crs = None):
+def process_splited_TimeSIFT_chunks_one_by_one(doc = scan.Document(), out_dir_ortho = None, out_dir_DEM = None, site_name="", resol_ref = None, crs = None):
     """
     Generate depth map, dense cloud, DEM and orthomosaic for one image. Always saves orthomosaic and saves DEM if specified
+
+    Parameters:
+    out_dir_ortho (str): Folder where the orthomosaics are saved 
+    out_dir_DEM (str, optional): Folder where the DEMs are saved. If no path is specified, the DEMs are not saved by default
+    site_name (str, optional): Adds the data site name into the names of all created folders and files, to better separate generated data from different projects. If not specified, the names will stay generic
     """
     TS_chunks = [chk for chk in doc.chunks if (re.search("TimeSIFT", chk.label) is None)]
     TS_chunks = [chk for chk in TS_chunks if chk.enabled]
@@ -216,6 +241,7 @@ def process_splited_TimeSIFT_chunks_one_by_one(doc = scan.Document(), pathDIR=No
         try :
             NewChunk.exportRaster(os.path.join(out_dir_ortho, f"{str(NewChunk.label)}{site_name}_ORTHO.tif"),source_data=scan.OrthomosaicData, image_format=scan.ImageFormatTIFF,
                                 projection=proj, resolution=resol_ref,clip_to_boundary=True,save_alpha=False, split_in_blocks = False)
+        #if the raster file is too big, it will be divided into blocks
         except:
             NewChunk.exportRaster(os.path.join(out_dir_ortho, f"{str(NewChunk.label)}{site_name}_ORTHO.tif"),source_data=scan.OrthomosaicData, image_format=scan.ImageFormatTIFF,
                                     projection=proj, resolution=resol_ref,clip_to_boundary=True,save_alpha=False, split_in_blocks = True, block_width=10000, block_height=10000)
@@ -239,13 +265,32 @@ def Time_SIFT_process(pathDIR,
                       group_by_flight = False,
                       doc = scan.Document(),
                       ):
-    
+    """
+    Executes the complete Time_SIFT process, calling all the other functions. The input folder should be containing subfolders named after each of the flights, that themselves contain all the photos. All these photos will then be merged, aligned,
+    then orthomosaic and (optionally) DEMs will be generated for each date (or for each flight)
+
+    Parameters:
+    pathDIR : path to the folder where the data is located. Inside this folder, there should be one subfolder per flight, with the date of the flight specified in the folder name, preferably at the beginning in the YYYYMMDD foramt
+    crs (str): Coordinate system used, in a string format. Exemple : crs="EPSG::32622" (default value)
+    resol_ref (float): The resolution (in meters) used to generate DEMs and orthomosaics. Defaults to 0.05
+    data_type (str): The type of the data used. Either 'RGB' (default) or 'MS' (for multispectral images)
+    out_dir_ortho (str): Folder where the orthomosaics are saved 
+    out_dir_DEM (str, optional): Folder where the DEMs are saved. If no path is specified, the DEMs are not saved by default. 
+    out_dir_project (str, optional): Folder where the Metashape project is saved. If no path is specified, the project is not saved by default
+    site_name (str, optional): Adds the data site name into the names of all created folders and files, to better separate generated data from different projects. If not specified, the names will stay generic
+    calibrate_col (bool): Whether or not to apply white balance, defaults to True
+    sun_sensor (bool): Whether or not to calibrate the reflectance using the sun sensor. Only applies to multispectral images, defaults to False
+    group_by_flight (bool): If True, regroups data by flight. Else, regroup it by date (default)
+    """
+        
     assert data_type in ["RGB", "MS"]
     #for file naming purposes
     if site_name != "":
        site_name = "_" + site_name
 
     calibrate_col = str2bool(calibrate_col)
+    sun_sensor = str2bool(sun_sensor)
+    group_by_flight = str2bool(group_by_flight)
 
     if not os.path.exists(out_dir_ortho):
         os.mkdir(out_dir_ortho)
@@ -293,7 +338,7 @@ def Time_SIFT_process(pathDIR,
     #merge_chunk_with_same_date(doc)
     t_split = time.time()
     #print("Temps écoulé pour la division et regroupement par date : ", t_split - t_align)
-    process_splited_TimeSIFT_chunks_one_by_one(doc, pathDIR = pathDIR, out_dir_ortho = out_dir_ortho, out_dir_DEM = out_dir_DEM, site_name = site_name, resol_ref = resol_ref, crs = crs)
+    process_splited_TimeSIFT_chunks_one_by_one(doc, out_dir_ortho = out_dir_ortho, out_dir_DEM = out_dir_DEM, site_name = site_name, resol_ref = resol_ref, crs = crs)
     print("Temps écoulé pour le process final : ", time.time() - t_split)
     print("Temps écoulé pour la pipeline complète : ", time.time() - start_time)
     doc.save(os.path.join(out_dir_ortho, '_temp_.psx'))
@@ -306,10 +351,10 @@ def Time_SIFT_process(pathDIR,
         doc.save(os.path.join(out_dir_project, f"Metashape_Project_{site_name}.psx"))
         
     #os.remove(os.path.join(out_dir_ortho, '_temp_.psx'))
-    #shutil.rmtree(os.path.join(out_dir_ortho, 'temp.files'))
+    #shutil.rmtree(os.path.join(out_dir_ortho, '_temp_.files'))
     
 """
-try:
+if __name__ == '__main__':
 
     #doc = scan.Document()
     #complete_process_RGB(doc, pathDIR="Y:\RGB", resol_ref=0.05, crs="EPSG::32622")
@@ -317,13 +362,10 @@ try:
     Time_SIFT_process(pathDIR="Y:/RGB/RGB", out_dir_ortho= "Z:/shared/PhenOBS/Paracou/Metashape/RGB_Broad_Mosaics/4D_050324/ORTHO", out_dir_DEM= "Z:/shared/PhenOBS/Paracou/Metashape/RGB_Broad_Mosaics/4D_050324/DEM", 
                          data_type="RGB", resol_ref=0.05, crs="EPSG::32622")
     #complete_process_and_save(doc, pathDIR = args.path_in, resol_ref = args.resol_ref, crs = args.crs, doc)
-    #complete_process_MS(doc, pathDIR="Y:\MS\P4M\batch_test", resol_ref=0.05, crs="EPSG::32622")
-    #add_all_chunks(doc, "Y:\RGB")
+    #complete_process_MS(doc, pathDIR="Y:/MS/P4M/batch_test", resol_ref=0.05, crs="EPSG::32622")
+    #add_all_chunks(doc, "Y:/RGB")
     
     #doc.save(args.path_out)
     #doc.save("Z:/users/GaelleViennois/Phenobs_recalage/test.psx")
-    
 
-except Exception as e:
-    print(f"An error occurred: {e}")
 """
