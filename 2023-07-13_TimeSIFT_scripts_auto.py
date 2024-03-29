@@ -29,6 +29,9 @@ args = parser.parse_args()
 
 
 def str2bool(v):
+    """
+    Converts string to bool. Ex : str2bool('True') = True
+    """
     if v is None or isinstance(v, bool):
         return v
     if v.lower()=='none':
