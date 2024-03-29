@@ -111,12 +111,12 @@ def call_arosics(path_in, path_ref, path_out=None, corr_type = 'global', max_shi
         
 def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'global', max_shift=250, max_iter=100, grid_res=1000, window_size=None, window_pos = (None, None), mp=0, save_csv = True, save_vector_plot = False, dynamic_corr = False, apply_matrix=False):
     """
-    Complete pipeline that uses arosics to perform a global or local co-registration on a file or a group of files located inside a folder.
+    Complete pipeline that uses arosics to perform a global or local co-registration on a file or a group of files located inside a folder. In the case of a local CoReg, option to save the tie points data and the vector shift map.
 
     Parameters:
     path_in (str): Path to the target image, or to a folder containing multiple taget images. Images must be of Geotiff format
 
-    ref_filepath (str): Path to the refernce image (any GDAL compatible image format is supported)
+    ref_filepath (str): Path to the refernce image 
 
     out_dir_path (str): Directory where the outputs will be saved
 
