@@ -82,7 +82,7 @@ def call_arosics(path_in, path_ref, path_out=None, corr_type = 'global', max_shi
     corr_type (str): Type of co-registration. Either 'global' (default) or 'local'
     max_shift (int): maximum shift distance in reference image pixel units
     max_iter (int): maximum number of iterations for matching (default: 5)
-    window_size (int or tuple(int)): custom matching window size [pixels] as (X, Y) tuple (default: (256,256))
+    window_size (int): custom matching window size [pixels] as (X, Y) tuple (default: (256,256))
     window_pos (tuple(int)): custom matching window position as (X, Y) map coordinate in the same projection as the reference image (default: central position of image overlap). Only used when performing global co-registration
     grid_res (int): tie point grid resolution in pixels of the target image (x-direction). Only applies to local co-registration
     mp (bool): Whether or not to do multiprocessing. If True, uses all CPU available. If False (default), uses only 1 CPU. 
@@ -94,10 +94,10 @@ def call_arosics(path_in, path_ref, path_out=None, corr_type = 'global', max_shi
     """
     CPUs = None if mp else 1
     if corr_type=='global':
-        CR = COREG(path_ref, path_in, path_out=path_out, fmt_out="GTIFF", ws=window_size, wp=window_pos, max_shift=max_shift, max_iter=max_iter, CPUs=CPUs)
+        CR = COREG(path_ref, path_in, path_out=path_out, fmt_out="GTIFF", ws=(window_size, window_size), wp=window_pos, max_shift=max_shift, max_iter=max_iter, CPUs=CPUs)
         CR.correct_shifts()
     elif corr_type=='local':
-        CR = COREG_LOCAL(path_ref, path_in, path_out=path_out, fmt_out="GTIFF", window_size=window_size, max_shift=max_shift, max_iter=max_iter, CPUs=CPUs, grid_res=grid_res)
+        CR = COREG_LOCAL(path_ref, path_in, path_out=path_out, fmt_out="GTIFF", window_size=(window_size, window_size), max_shift=max_shift, max_iter=max_iter, CPUs=CPUs, grid_res=grid_res)
         CR.correct_shifts()
         if save_csv:
             df = CR.CoRegPoints_table
@@ -126,7 +126,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
 
     max_iter (int): maximum number of iterations for matching (default: 5)
 
-    window_size (int or tuple(int)): custom matching window size [pixels] as (X, Y) tuple (default: (256,256))
+    window_size (int): custom matching window size [pixels] as (X, Y) tuple (default: (256,256))
 
     window_pos (tuple(int)): custom matching window position as (X, Y) map coordinate in the same projection as the reference image (default: central position of image overlap). Only used when performing global co-registration
 
@@ -174,7 +174,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
         else:
             harmonize_crs(path_in, ref_filepath)
             path_out = os.path.join(out_dir_path, path_in.split('/')[-1].split('\\')[-1].split('.')[0] + f'_aligned_{corr_type}.tif')
-            CR = call_arosics(path_in, ref_filepath, path_out, corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_csv=save_csv)
+            CR = call_arosics(path_in, ref_filepath, path_out=path_out, corr_type=corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_csv=save_csv)
             return CR
             
     elif os.path.isdir(path_in):
@@ -191,7 +191,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
                 current_file_path = os.path.join(path_in, file)
                 harmonize_crs(current_file_path, ref_filepath, check_ref = True if i==0 else False)
                 path_out = os.path.join(out_dir_path, file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
-                CR = call_arosics(current_file_path, ref_filepath, path_out, corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_csv=save_csv)
+                CR = call_arosics(current_file_path, ref_filepath, path_out=path_out, corr_type=corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_csv=save_csv)
                 list_CR.append(CR)
                 if dynamic_corr:
                     ref_filepath = path_out
@@ -245,7 +245,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
                 first_file = files[0]
                 harmonize_crs(os.path.join(path_in, first_file), ref_filepath)
                 path_out = os.path.join(out_dir_path, first_file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
-                CR = call_arosics(os.path.join(path_in, first_file), ref_filepath, path_out, corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_csv=save_csv)             
+                CR = call_arosics(os.path.join(path_in, first_file), ref_filepath, path_out=path_out, corr_type=corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_csv=save_csv)             
                 list_CR.append(CR)
                 for file in files[1:]:
                     current_file_path = os.path.join(path_in, file)
