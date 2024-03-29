@@ -73,17 +73,24 @@ def harmonize_crs(input_path, ref_path, check_ref=True):
 
 def call_arosics(path_in, path_ref, path_out=None, corr_type = 'global', max_shift=250, max_iter=100, window_size=1500, window_pos = (None, None), mp=0, grid_res=1000, save_csv = True, save_vector_plot = False):
     """
+    Calls arosics functions to perform a global or local co-registration between two images. Option to save the coregistrated image, and in the case of a local CoReg, the tie points data and the vector shift map.
 
     Parameters:
-    path_in (str): source path of the target image, i.e. the image to be shifted (any GDAL compatible image format is supported)
-    path_ref (str): Path to the refernce image (any GDAL compatible image format is supported)
+    path_in (str): source path of the target image, i.e. the image to be shifted
+    path_ref (str): Path to the refernce image 
     path_out (str, optional): target path of the coregistered image. Defaults to None, in which case nothing will be written to disk
-    check_ref (bool, optional):  If True (default), perform an additional safety measure by rewriting the crs of the reference image aswell. May prevent errors if both files have their crs defined from different libraries (rasterio.CRS and pyproj.CRS)
     corr_type (str): Type of co-registration. Either 'global' (default) or 'local'
     max_shift (int): maximum shift distance in reference image pixel units
     max_iter (int): maximum number of iterations for matching (default: 5)
     window_size (int or tuple(int)): custom matching window size [pixels] as (X, Y) tuple (default: (256,256))
     window_pos (tuple(int)): custom matching window position as (X, Y) map coordinate in the same projection as the reference image (default: central position of image overlap). Only used when performing global co-registration
+    grid_res (int): tie point grid resolution in pixels of the target image (x-direction). Only applies to local co-registration
+    mp (bool): Whether or not to do multiprocessing. If True, uses all CPU available. If False (default), uses only 1 CPU. 
+    save_csv (bool): If True (default), saves the tie points data in a csv file. Has an effect only when performing local co-registration
+    save_vector_plot (bool): If True (default), saves the a map of the calculated tie point grid in a JPEG file. Has an effect only when performing local co-registration
+
+    Returns:
+        A COREG object containing all info on the calculated shifts
     """
     CPUs = None if mp else 1
     if corr_type=='global':
@@ -98,11 +105,52 @@ def call_arosics(path_in, path_ref, path_out=None, corr_type = 'global', max_shi
         if save_vector_plot:
             DPI=300
             vector_scale=15
-            CR.view_CoRegPoints(shapes2plot = 'vectors', savefigPath = path_out.split('.')[0] + f"_vector_map_{DPI}DPI_{vector_scale}.JPEG", savefigDPI=300, vector_scale=vector_scale, backgroundIm='tgt')
+            CR.view_CoRegPoints(shapes2plot = 'vectors', savefigPath = path_out.split('.')[0] + f"_vector_map_{DPI}DPI.JPEG", savefigDPI=DPI, vector_scale=vector_scale, backgroundIm='tgt')
     return CR
 
         
-def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'global', dynamic_corr = False, apply_matrix=True, max_shift=250, max_iter=100, grid_res=1000, window_size=None, window_pos = (None, None), mp=0, save_csv = True, save_vector_plot = False):
+def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'global', max_shift=250, max_iter=100, grid_res=1000, window_size=None, window_pos = (None, None), mp=0, save_csv = True, save_vector_plot = False, dynamic_corr = False, apply_matrix=False):
+    """
+    Complete pipeline that uses arosics to perform a global or local co-registration on a file or a group of files located inside a folder.
+
+    Parameters:
+    path_in (str): Path to the target image, or to a folder containing multiple taget images. Images must be of Geotiff format
+
+    ref_filepath (str): Path to the refernce image (any GDAL compatible image format is supported)
+
+    out_dir_path (str): Directory where the outputs will be saved
+
+    corr_type (str): Type of co-registration. Either 'global' (default) or 'local'
+
+    max_shift (int): maximum shift distance in reference image pixel units
+
+    max_iter (int): maximum number of iterations for matching (default: 5)
+
+    window_size (int or tuple(int)): custom matching window size [pixels] as (X, Y) tuple (default: (256,256))
+
+    window_pos (tuple(int)): custom matching window position as (X, Y) map coordinate in the same projection as the reference image (default: central position of image overlap). Only used when performing global co-registration
+
+    grid_res (int): tie point grid resolution in pixels of the target image (x-direction). Only applies to local co-registration
+
+    mp (bool): Whether or not to do multiprocessing. If True, uses all CPU available. If False (default), uses only 1 CPU. 
+
+    save_csv (bool): If True (default), saves the tie points data in a csv file. Has an effect only when performing local co-registration
+
+    save_vector_plot (bool): If True (default), saves the a map of the calculated tie point grid in a JPEG file. Has an effect only when performing local co-registration
+
+    dynamic_corr (bool): When correcting multiple images, whether or not to use the last corrected image as reference for the next coregistration.
+                            If False (default), all images are corrected using 'ref_filepath' as the reference image
+                            If True, image 1 will use 'ref_filepath' as a reference, then image N (N>=2) will use the corrected version of image N-1 as reference
+
+    apply_matrix (bool): When correcting multiple image, whether or not to directly apply the shifts computed for the first image to all the remaining ones, instead of computing the shifts for each one independantly. Defaults to False.
+                        !! Warning !! : Using this option allows faster computing time and better alignement between input images, but will create problems if those images have different bounds.
+                        In this verson, only the intersection of the input images is kept after coregistration
+
+                        
+    Returns:
+        A COREG object (if path_in is a file) or a list of COREG objects (if path_in is a folder) containing all info on the calculated shifts
+    """
+
     assert corr_type in ['global', 'local']
     rm_temp_files = False
     dynamic_corr = str2bool(dynamic_corr)
@@ -158,6 +206,10 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
                 glist.append(tf[2])
                 dlist.append(tf[2] + tf[0]*meta['width'])
             
+            """
+            The following section is a way to address the issue that, when applying the same shifts to initially aligned images with different bounds, their corrected versions will not be aligned, because the transform is applied to the upper-left corner of the image.
+            The temporary solution found below crops the input images so that they all have the same top-left  coordinates. This however results in the loss of part of the initial data.
+            """
             if not (all(x == hlist[0] for x in hlist) and all(x == glist[0] for x in glist)):     #and (np.max(dlist)-np.max(glist)) < 0.9*(np.max(dlist)-np.min(glist)) and (np.min(hlist)-np.max(blist)) < 0.9*(np.max(hlist)-np.max(blist))  #if apply_mask
                 rm_temp_files=True
                 mask_coords = [np.max(glist), np.min(blist), np.max(dlist), np.min(hlist)]
