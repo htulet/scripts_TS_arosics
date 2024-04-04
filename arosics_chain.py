@@ -9,7 +9,7 @@ from arosics import COREG, COREG_LOCAL, DESHIFTER
 import rasterio.features as features
 import time
 import pandas as pd
-from shapely import Polygon
+from shapely.geometry import Polygon
 
 #Parser (useless for now)
 parser = argparse.ArgumentParser()
@@ -101,14 +101,14 @@ def call_arosics(path_in, path_ref, path_out=None, corr_type = 'global', max_shi
             shifts = CR.coreg_info['corrected_shifts_map']
             shift_x, shift_y = shifts['x'], shifts['y']
             df = pd.DataFrame({'Shift_X':[shift_x], 'Shift_Y':[shift_y]})
-            df.to_csv(path_out.split('.')[0] + '_global_shift.csv', index=False)
+            df.to_csv(os.path.join(os.path.dirname(path_out), os.path.basename(path_out).split('.')[0] + '_shift.csv'), index=False)
 
     elif corr_type=='local':
         CR = COREG_LOCAL(path_ref, path_in, path_out=path_out, fmt_out="GTIFF", window_size=(window_size, window_size), max_shift=max_shift, max_iter=max_iter, CPUs=CPUs, grid_res=grid_res)
         CR.correct_shifts()
         if save_csv:
             df = CR.CoRegPoints_table
-            df.to_csv(path_out.split('.')[0] + '_CoRegPoints_table.csv', index=False)
+            df.to_csv(os.path.join(os.path.dirname(path_out), os.path.basename(path_out).split('.')[0] + '_CoRegPoints_table.csv'), index=False)
         if save_vector_plot:
             DPI=300
             vector_scale=15
@@ -281,7 +281,7 @@ if __name__ == '__main__':
                              out_dir_path = "//amap-data.cirad.fr/work/users/HadrienTulet/tests_arosics/apply_matrix_loc_no_mask____", 
                              corr_type = 'global', 
                              dynamic_corr=False,
-                             apply_matrix=True,
+                             apply_matrix=False,
                              save_csv = True
                              )
     """
