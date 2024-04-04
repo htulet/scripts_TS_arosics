@@ -8,6 +8,7 @@ import os
 from arosics import COREG, COREG_LOCAL, DESHIFTER
 import rasterio.features as features
 import time
+import pandas as pd
 from shapely import Polygon
 
 #Parser (useless for now)
@@ -96,12 +97,18 @@ def call_arosics(path_in, path_ref, path_out=None, corr_type = 'global', max_shi
     if corr_type=='global':
         CR = COREG(path_ref, path_in, path_out=path_out, fmt_out="GTIFF", ws=(window_size, window_size), wp=window_pos, max_shift=max_shift, max_iter=max_iter, CPUs=CPUs)
         CR.correct_shifts()
+        if save_csv :
+            shifts = CR.coreg_info['corrected_shifts_map']
+            shift_x, shift_y = shifts['x'], shifts['y']
+            df = pd.DataFrame({'Shift_X':[shift_x], 'Shift_Y':[shift_y]})
+            df.to_csv(path_out.split('.')[0] + '_global_shift.csv', index=False)
+
     elif corr_type=='local':
         CR = COREG_LOCAL(path_ref, path_in, path_out=path_out, fmt_out="GTIFF", window_size=(window_size, window_size), max_shift=max_shift, max_iter=max_iter, CPUs=CPUs, grid_res=grid_res)
         CR.correct_shifts()
         if save_csv:
             df = CR.CoRegPoints_table
-            df.to_csv(path_out.split('.')[0] + '_CoRegPoints_table.csv')
+            df.to_csv(path_out.split('.')[0] + '_CoRegPoints_table.csv', index=False)
         if save_vector_plot:
             DPI=300
             vector_scale=15
@@ -165,6 +172,9 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
     elif corr_type == 'local':
         if window_size is None :
             window_size = 4000 
+
+    if not os.path.exists(out_dir_path):
+        os.mkdir(out_dir_path)
 
     extensions = ('.tif', '.tiff', '.TIF', '.TIFF')
 
@@ -268,10 +278,11 @@ if __name__ == '__main__':
     """
     complete_arosics_process(path_in = "//amap-data.cirad.fr/work/users/HadrienTulet/tests_arosics/data", 
                              ref_filepath = "//amap-data.cirad.fr/work/shared/PhenOBS/Paracou/Metashape/RGB_Broad_Mosaics/PARACOU2023_DSM_50cm_filt.tif", 
-                             out_dir_path = "//amap-data.cirad.fr/work/users/HadrienTulet/tests_arosics/apply_matrix_loc_no_mask", 
-                             corr_type = 'local', 
+                             out_dir_path = "//amap-data.cirad.fr/work/users/HadrienTulet/tests_arosics/apply_matrix_loc_no_mask____", 
+                             corr_type = 'global', 
                              dynamic_corr=False,
-                             apply_matrix=True
+                             apply_matrix=True,
+                             save_csv = True
                              )
     """
 
