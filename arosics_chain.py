@@ -7,6 +7,7 @@ import argparse
 import os
 from arosics import COREG, COREG_LOCAL, DESHIFTER
 import rasterio.features as features
+from rasterio.windows import Window
 import time
 import pandas as pd
 from shapely.geometry import Polygon
@@ -179,7 +180,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
     extensions = ('.tif', '.tiff', '.TIF', '.TIFF')
 
     if os.path.isfile(path_in):
-        if not file.endswith(extensions):
+        if not path_in.endswith(extensions):
             raise ValueError(f"The specified file '{path_in}' must be of GeoTiff format")
         else:
             harmonize_crs(path_in, ref_filepath)
@@ -218,7 +219,9 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
             
             """
             The following section is a way to address the issue that, when applying the same shifts to initially aligned images with different bounds, their corrected versions will not be aligned, because the transform is applied to the upper-left corner of the image.
-            The temporary solution found below crops the input images so that they all have the same top-left  coordinates. This however results in the loss of part of the initial data.
+            The solution found below padds the smaller input images so that they all have the same top-left coordinates. This however results in the output images taking a little more space than necessary.
+            """
+
             """
             if not (all(x == hlist[0] for x in hlist) and all(x == glist[0] for x in glist)):     #and (np.max(dlist)-np.max(glist)) < 0.9*(np.max(dlist)-np.min(glist)) and (np.min(hlist)-np.max(blist)) < 0.9*(np.max(hlist)-np.max(blist))  #if apply_mask
                 rm_temp_files=True
@@ -249,21 +252,60 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
                     with rasterio.open(out_path, "w", **file_meta) as ds_ref:
                             ds_ref.write(red_new_img)
                             ds_ref.close()
-                
+            """
+            if not (all(x == hlist[0] for x in hlist) and all(x == glist[0] for x in glist)):     #and (np.max(dlist)-np.max(glist)) < 0.9*(np.max(dlist)-np.min(glist)) and (np.min(hlist)-np.max(blist)) < 0.9*(np.max(hlist)-np.max(blist))  #if apply_mask
+                rm_temp_files=True
+                mask_coords = [np.min(glist), np.min(blist), np.max(dlist), np.max(hlist)]
+                geom = Polygon([(mask_coords[0], mask_coords[1]), (mask_coords[0], mask_coords[3]), (mask_coords[2], mask_coords[3]), (mask_coords[2], mask_coords[1])])
+                num_cols = int(np.ceil((mask_coords[2]-mask_coords[0]) / tf[0]))
+                num_rows = int(np.ceil((mask_coords[1]-mask_coords[3]) / tf[4]))
+                print("num cols : ", num_cols)
+                print("num rows : ", num_rows)
+                print("Mask : ", geom.bounds)
+                #All images are padded to fit the geometry of the mask
+                for i in range(len(files)) :
+                    file = files[i]
+                    rast = rasterio.open(os.path.join(path_in, file))
+                    img = rast.read()
+                    print("image shape : ", img.shape)
 
-            else:
-                first_file = files[0]
-                harmonize_crs(os.path.join(path_in, first_file), ref_filepath)
-                path_out = os.path.join(out_dir_path, first_file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
-                CR = call_arosics(os.path.join(path_in, first_file), ref_filepath, path_out=path_out, corr_type=corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_csv=save_csv)             
+                    padded_data = np.ones((3, num_rows, num_cols), dtype=img.dtype)*255
+                    
+                    # Calculate the offset to pad the smaller raster
+                    row_offset = int((geom.bounds[3] - rast.bounds.top) / abs(rast.res[0]))
+                    col_offset = int((rast.bounds.left - geom.bounds[0]) / abs(rast.res[1]))
+                    
+                    # Define the window to copy the smaller raster into the padded data array
+                    window = Window(col_offset, row_offset, img.shape[2], img.shape[1])
+
+                    # Copy the smaller raster into the padded data array
+                    padded_data[:, window.row_off : window.row_off+window.height, window.col_off : window.col_off+window.width] = img
+                    # Update the metadata for the padded raster
+                    target_tf = rasterio.Affine(list(rast.meta.copy()['transform'])[0], 0.0, mask_coords[0], 0.0, list(rast.meta.copy()['transform'])[4], mask_coords[3])
+                    profile = rast.profile
+                    profile.update(width=padded_data.shape[2], height=padded_data.shape[1], transform=target_tf,
+                                    bounds=geom.bounds)
+                    print("padded img shape : ", padded_data.shape)
+                    out_path = os.path.join(path_in, f"{file.split('.')[0]}_temp.tif")
+                    files[i] = f"{file.split('.')[0]}_temp.tif"
+                    rast.close()
+                    # Write the padded data to a new raster file
+                    with rasterio.open(out_path, "w", **profile) as dst:
+                        dst.write(padded_data)
+                        dst.close()
+
+            first_file = files[0]
+            harmonize_crs(os.path.join(path_in, first_file), ref_filepath)
+            path_out = os.path.join(out_dir_path, first_file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
+            CR = call_arosics(os.path.join(path_in, first_file), ref_filepath, path_out=path_out, corr_type=corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_csv=save_csv)             
+            list_CR.append(CR)
+            for file in files[1:]:
+                current_file_path = os.path.join(path_in, file)
+                harmonize_crs(current_file_path, ref_filepath, check_ref=False)
+                path_out = os.path.join(out_dir_path, file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
+                CR = DESHIFTER(current_file_path, CR.coreg_info, path_out=path_out, fmt_out="GTIFF")
+                CR.correct_shifts() 
                 list_CR.append(CR)
-                for file in files[1:]:
-                    current_file_path = os.path.join(path_in, file)
-                    harmonize_crs(current_file_path, ref_filepath, check_ref=False)
-                    path_out = os.path.join(out_dir_path, file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
-                    CR = DESHIFTER(current_file_path, CR.coreg_info, path_out=path_out, fmt_out="GTIFF").correct_shifts() 
-                    list_CR.append(CR)
-        
         if rm_temp_files:
             for file in files:
                 os.remove(os.path.join(path_in, file))
@@ -275,16 +317,16 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
 
 
 if __name__ == '__main__':
-    """
+    
     complete_arosics_process(path_in = "//amap-data.cirad.fr/work/users/HadrienTulet/tests_arosics/data", 
                              ref_filepath = "//amap-data.cirad.fr/work/shared/PhenOBS/Paracou/Metashape/RGB_Broad_Mosaics/PARACOU2023_DSM_50cm_filt.tif", 
-                             out_dir_path = "//amap-data.cirad.fr/work/users/HadrienTulet/tests_arosics/apply_matrix_loc_no_mask____", 
+                             out_dir_path = "//amap-data.cirad.fr/work/users/HadrienTulet/tests_arosics/apply_matrix_glob_pad", 
                              corr_type = 'global', 
                              dynamic_corr=False,
-                             apply_matrix=False,
+                             apply_matrix=True,
                              save_csv = True
                              )
-    """
+    
 
  
 
