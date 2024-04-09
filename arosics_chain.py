@@ -48,9 +48,12 @@ def harmonize_crs(input_path, ref_path, check_ref=True):
     Forces two raster files to have the same coordinate system : takes the crs of the reference file and writes it into the input file
 
     Parameters:
-    input file (str): Path to the first image
-    ref_path (str): Path to the second image (reference)
-    check_ref (bool, optional):  If True (default), perform an additional safety measure by rewriting the crs of the reference image aswell. May prevent errors if both files have their crs defined from different libraries (rasterio.CRS and pyproj.CRS)
+    input file (str): 
+        Path to the first image
+    ref_path (str): 
+        Path to the second image (reference)
+    check_ref (bool, optional):  
+        If True (default), perform an additional safety measure by rewriting the crs of the reference image aswell. May prevent errors if both files have their crs defined from different libraries (rasterio.CRS and pyproj.CRS)
     """
     with rasterio.open(ref_path) as ds_ref:
         metadata_ref = ds_ref.meta.copy()
@@ -78,18 +81,30 @@ def call_arosics(path_in, path_ref, path_out=None, corr_type = 'global', max_shi
     Calls arosics functions to perform a global or local co-registration between two images. Option to save the coregistrated image, and in the case of a local CoReg, the tie points data and the vector shift map.
 
     Parameters:
-    path_in (str): source path of the target image, i.e. the image to be shifted
-    path_ref (str): Path to the refernce image 
-    path_out (str, optional): target path of the coregistered image. Defaults to None, in which case nothing will be written to disk
-    corr_type (str): Type of co-registration. Either 'global' (default) or 'local'
-    max_shift (int): maximum shift distance in reference image pixel units
-    max_iter (int): maximum number of iterations for matching (default: 5)
-    window_size (int): custom matching window size [pixels] as (X, Y) tuple (default: (256,256))
-    window_pos (tuple(int)): custom matching window position as (X, Y) map coordinate in the same projection as the reference image (default: central position of image overlap). Only used when performing global co-registration
-    grid_res (int): tie point grid resolution in pixels of the target image (x-direction). Only applies to local co-registration
-    mp (bool): Whether or not to do multiprocessing. If True, uses all CPU available. If False (default), uses only 1 CPU. 
-    save_csv (bool): If True (default), saves the tie points data in a csv file. Has an effect only when performing local co-registration
-    save_vector_plot (bool): If True (default), saves the a map of the calculated tie point grid in a JPEG file. Has an effect only when performing local co-registration
+        path_in (str): 
+            source path of the target image, i.e. the image to be shifted
+        path_ref (str): 
+            Path to the refernce image 
+        path_out (str, optional): 
+            target path of the coregistered image. Defaults to None, in which case nothing will be written to disk
+        corr_type (str): 
+            Type of co-registration. Either 'global' (default) or 'local'
+        max_shift (int): 
+            maximum shift distance in reference image pixel units
+        max_iter (int): 
+            maximum number of iterations for matching (default: 5)
+        window_size (int): 
+            custom matching window size [pixels] as (X, Y) tuple (default: (256,256))
+        window_pos (tuple(int)): 
+            custom matching window position as (X, Y) map coordinate in the same projection as the reference image (default: central position of image overlap). Only used when performing global co-registration
+        grid_res (int): 
+            tie point grid resolution in pixels of the target image (x-direction). Only applies to local co-registration
+        mp (bool): 
+            Whether or not to do multiprocessing. If True, uses all CPU available. If False (default), uses only 1 CPU. 
+        save_csv (bool): 
+            If True (default), saves the tie points data in a csv file. Has an effect only when performing local co-registration
+        save_vector_plot (bool): 
+            If True (default), saves the a map of the calculated tie point grid in a JPEG file. Has an effect only when performing local co-registration
 
     Returns:
         A COREG object containing all info on the calculated shifts
@@ -122,37 +137,38 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
     Complete pipeline that uses arosics to perform a global or local co-registration on a file or a group of files located inside a folder. In the case of a local CoReg, option to save the tie points data and the vector shift map.
 
     Parameters:
-    path_in (str): Path to the target image, or to a folder containing multiple taget images. Images must be of Geotiff format
-
-    ref_filepath (str): Path to the refernce image 
-
-    out_dir_path (str): Directory where the outputs will be saved
-
-    corr_type (str): Type of co-registration. Either 'global' (default) or 'local'
-
-    max_shift (int): maximum shift distance in reference image pixel units
-
-    max_iter (int): maximum number of iterations for matching (default: 5)
-
-    window_size (int): custom matching window size [pixels] as (X, Y) tuple (default: (256,256))
-
-    window_pos (tuple(int)): custom matching window position as (X, Y) map coordinate in the same projection as the reference image (default: central position of image overlap). Only used when performing global co-registration
-
-    grid_res (int): tie point grid resolution in pixels of the target image (x-direction). Only applies to local co-registration
-
-    mp (bool): Whether or not to do multiprocessing. If True, uses all CPU available. If False (default), uses only 1 CPU. 
-
-    save_csv (bool): If True (default), saves the tie points data in a csv file. Has an effect only when performing local co-registration
-
-    save_vector_plot (bool): If True (default), saves the a map of the calculated tie point grid in a JPEG file. Has an effect only when performing local co-registration
-
-    dynamic_corr (bool): When correcting multiple images, whether or not to use the last corrected image as reference for the next coregistration.
-                            If False (default), all images are corrected using 'ref_filepath' as the reference image
-                            If True, image 1 will use 'ref_filepath' as a reference, then image N (N>=2) will use the corrected version of image N-1 as reference
-
-    apply_matrix (bool): When correcting multiple image, whether or not to directly apply the shifts computed for the first image to all the remaining ones, instead of computing the shifts for each one independantly. Defaults to False.
-                        !! Warning !! : Using this option allows faster computing time and better alignement between input images, but will create problems if those images have different bounds.
-                        In this verson, only the intersection of the input images is kept after coregistration
+        path_in (str): 
+            Path to the target image, or to a folder containing multiple taget images. Images must be of Geotiff format
+        ref_filepath (str): 
+            Path to the refernce image 
+        out_dir_path (str): 
+            Directory where the outputs will be saved
+        corr_type (str): 
+            Type of co-registration. Either 'global' (default) or 'local'
+        max_shift (int): 
+            maximum shift distance in reference image pixel units
+        max_iter (int): 
+            maximum number of iterations for matching (default: 5)
+        window_size (int): 
+            custom matching window size [pixels] as (X, Y) tuple (default: (256,256))
+        window_pos (tuple(int)): 
+            custom matching window position as (X, Y) map coordinate in the same projection as the reference image (default: central position of image overlap). Only used when performing global co-registration
+        grid_res (int): 
+            tie point grid resolution in pixels of the target image (x-direction). Only applies to local co-registration
+        mp (bool): 
+            Whether or not to do multiprocessing. If True, uses all CPU available. If False (default), uses only 1 CPU. 
+        save_csv (bool): 
+            If True (default), saves the tie points data in a csv file. Has an effect only when performing local co-registration
+        save_vector_plot (bool): 
+            If True (default), saves the a map of the calculated tie point grid in a JPEG file. Has an effect only when performing local co-registration
+        dynamic_corr (bool): 
+            When correcting multiple images, whether or not to use the last corrected image as reference for the next coregistration.
+            If False (default), all images are corrected using 'ref_filepath' as the reference image
+            If True, image 1 will use 'ref_filepath' as a reference, then image N (N>=2) will use the corrected version of image N-1 as reference
+        apply_matrix (bool): 
+            When correcting multiple image, whether or not to directly apply the shifts computed for the first image to all the remaining ones, instead of computing the shifts for each one independantly. Defaults to False.
+            !! Warning !! : Using this option allows faster computing time and better alignement between input images, but will create problems if those images have different bounds.
+            In this verson, only the intersection of the input images is kept after coregistration
 
                         
     Returns:

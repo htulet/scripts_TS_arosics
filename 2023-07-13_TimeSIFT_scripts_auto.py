@@ -166,7 +166,8 @@ def split_TimeSIFT_chunk(doc = scan.Document(), group_by_flight = False):
     After the alignement, splits the merged chunk into smaller chunks, each representing a date (default) or a flight
 
     Parameters:
-    group_by_flight (bool): If True, regroups data by flight. Else, regroup it by date (default)
+    group_by_flight (bool): 
+        If True, regroups data by flight. Else, regroup it by date (default)
     """
     TS_chunk = [chk for chk in doc.chunks if (re.search("TimeSIFT", chk.label) is not None)][0]
     if group_by_flight:
@@ -211,9 +212,12 @@ def process_splited_TimeSIFT_chunks_one_by_one(doc = scan.Document(), out_dir_or
     Generate depth map, dense cloud, DEM and orthomosaic for one image. Always saves orthomosaic and saves DEM if specified
 
     Parameters:
-    out_dir_ortho (str): Folder where the orthomosaics are saved 
-    out_dir_DEM (str, optional): Folder where the DEMs are saved. If no path is specified, the DEMs are not saved by default
-    site_name (str, optional): Adds the data site name into the names of all created folders and files, to better separate generated data from different projects. If not specified, the names will stay generic
+    out_dir_ortho (str): 
+        Folder where the orthomosaics are saved 
+    out_dir_DEM (str, optional): 
+        Folder where the DEMs are saved. If no path is specified, the DEMs are not saved by default
+    site_name (str, optional): 
+        Adds the data site name into the names of all created folders and files, to better separate generated data from different projects. If not specified, the names will stay generic
     """
     TS_chunks = [chk for chk in doc.chunks if (re.search("TimeSIFT", chk.label) is None)]
     TS_chunks = [chk for chk in TS_chunks if chk.enabled]
@@ -273,17 +277,28 @@ def Time_SIFT_process(pathDIR,
     then orthomosaic and (optionally) DEMs will be generated for each date (or for each flight)
 
     Parameters:
-    pathDIR : path to the folder where the data is located. Inside this folder, there should be one subfolder per flight, with the date of the flight specified in the folder name, preferably at the beginning in the YYYYMMDD foramt
-    crs (str): Coordinate system used, in a string format. Exemple : crs="EPSG::32622" (default value)
-    resol_ref (float): The resolution (in meters) used to generate DEMs and orthomosaics. Defaults to 0.05
-    data_type (str): The type of the data used. Either 'RGB' (default) or 'MS' (for multispectral images)
-    out_dir_ortho (str): Folder where the orthomosaics are saved 
-    out_dir_DEM (str, optional): Folder where the DEMs are saved. If no path is specified, the DEMs are not saved by default. 
-    out_dir_project (str, optional): Folder where the Metashape project is saved. If no path is specified, the project is not saved by default
-    site_name (str, optional): Adds the data site name into the names of all created folders and files, to better separate generated data from different projects. If not specified, the names will stay generic
-    calibrate_col (bool): Whether or not to apply white balance, defaults to True
-    sun_sensor (bool): Whether or not to calibrate the reflectance using the sun sensor. Only applies to multispectral images, defaults to False
-    group_by_flight (bool): If True, regroups data by flight. Else, regroup it by date (default)
+    pathDIR (str): 
+        Path to the folder where the data is located. Inside this folder, there should be one subfolder per flight, with the date of the flight specified in the folder name, preferably at the beginning in the YYYYMMDD foramt
+    crs (str): 
+        Coordinate system used, in a string format. Exemple : crs="EPSG::32622" (default value)
+    resol_ref (float): 
+        The resolution (in meters) used to generate DEMs and orthomosaics. Defaults to 0.05
+    data_type (str): 
+        The type of the data used. Either 'RGB' (default) or 'MS' (for multispectral images)
+    out_dir_ortho (str): 
+        Folder where the orthomosaics are saved 
+    out_dir_DEM (str, optional): 
+        Folder where the DEMs are saved. If no path is specified, the DEMs are not saved by default. 
+    out_dir_project (str, optional): 
+        Folder where the Metashape project is saved. If no path is specified, the project is not saved by default
+    site_name (str, optional): 
+        Adds the data site name into the names of all created folders and files, to better separate generated data from different projects. If not specified, the names will stay generic
+    calibrate_col (bool): 
+        Whether or not to apply white balance, defaults to True
+    sun_sensor (bool): 
+        Whether or not to calibrate the reflectance using the sun sensor. Only applies to multispectral images, defaults to False
+    group_by_flight (bool): 
+        If True, regroups data by flight. Else, regroup it by date (default)
     """
         
     assert data_type in ["RGB", "MS"]
