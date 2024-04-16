@@ -334,13 +334,14 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
 
 if __name__ == '__main__':
     
-    complete_arosics_process(path_in = "//amap-data.cirad.fr/work/users/HadrienTulet/tests_arosics/data", 
-                             ref_filepath = "//amap-data.cirad.fr/work/shared/PhenOBS/Paracou/Metashape/RGB_Broad_Mosaics/PARACOU2023_DSM_50cm_filt.tif", 
-                             out_dir_path = "//amap-data.cirad.fr/work/users/HadrienTulet/tests_arosics/apply_matrix_glob_pad", 
-                             corr_type = 'global', 
+    complete_arosics_process(path_in = "D:/Phenologie/arosics_tests/data_juliette/2019_04_05_dynafor_9_2019_dynafor_9ha_transparent_mosaic_group1.tif",
+                             ref_filepath = "D:/Phenologie/arosics_tests/data_juliette/DSM1m_Max.tif", 
+                             out_dir_path = "D:/Phenologie/arosics_tests/outputs_juliette", 
+                             corr_type = 'local', 
                              dynamic_corr=False,
                              apply_matrix=True,
-                             save_csv = True
+                             save_csv = False,
+                             save_vector_plot=True
                              )
     
 

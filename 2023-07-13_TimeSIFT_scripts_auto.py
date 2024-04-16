@@ -79,11 +79,11 @@ def add_TimeSIFT_chunk(doc = scan.Document(), epoch_name=""):
             cam.label = (str(chunk.label) + "_EPOCH_" + cam.label)
 
 
-
+"""
 def add_all_MS_photos(doc = scan.Document(), pathDIR=None):
-    """
-    Loads all MS photos into the project, one chunk per subfolder in pathDIR
-    """
+    
+    #Loads all MS photos into the project, one chunk per subfolder in pathDIR
+    
     print(pathDIR)
     os.chdir(pathDIR)
     for chk in doc.chunks:
@@ -112,7 +112,7 @@ def add_all_MS_photos(doc = scan.Document(), pathDIR=None):
         chunk.addPhotos(listOfFiles, layout = scan.MultiplaneLayout, group = i)  
         for cam in chunk.cameras[L:]:
             cam.label = (str(epoch_name) + "_EPOCH_" + cam.label)  
-
+"""
 
 
 def merge_chunk_TimeSIFT(doc = scan.Document()):
@@ -321,21 +321,24 @@ def Time_SIFT_process(pathDIR,
 
     #TODO : store all times into log file, or add progress bars
     start_time = time.time()
-    if data_type == "RGB" :
+    if data_type == "RGB" or data_type == "MS":
         add_all_chunks(doc, pathDIR = pathDIR)
         merge_chunk_TimeSIFT(doc)
         t_add_data = time.time()
         print("Temps écoulé pour le chargement et la fusion des photos : ", t_add_data - start_time)
 
-    if sun_sensor and data_type=='MS':
-        TS_chunk = [chk for chk in doc.chunks if (re.search("TimeSIFT", chk.label) is not None)][0]
-        TS_chunk.calibrateReflectance(use_sun_sensor=True)
 
+    """
     elif data_type == "MS" :
         add_all_MS_photos(doc, pathDIR = pathDIR)
         t_add_data = time.time()
         print("Temps écoulé pour le chargement des photos : ", t_add_data - start_time)
-        
+    """
+    
+    if sun_sensor and data_type=='MS':
+        TS_chunk = [chk for chk in doc.chunks if (re.search("TimeSIFT", chk.label) is not None)][0]
+        TS_chunk.calibrateReflectance(use_sun_sensor=True)
+
     align_TimeSIFT_chunk(doc)
     t_align = time.time()
     print("Temps écoulé pour l'alignement : ", t_align - t_add_data)
