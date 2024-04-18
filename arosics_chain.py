@@ -12,7 +12,6 @@ import time
 import pandas as pd
 from shapely.geometry import Polygon
 
-#Parser (useless for now)
 parser = argparse.ArgumentParser()
 parser.add_argument('--path_in')
 parser.add_argument('--ref_filepath')
@@ -23,8 +22,11 @@ parser.add_argument('--mp', default=1)
 parser.add_argument('--max_shift', default=250)
 parser.add_argument('--max_iter', default=100)
 parser.add_argument('--ws', default=None)
+parser.add_argument('--wp', default=(None, None))
 parser.add_argument('--grid_res', default=1000)
-parser.add_argument('--apply_matrix', default=True)
+parser.add_argument('--apply_matrix', default=False)
+parser.add_argument('--save_plot', default=False)
+parser.add_argument('--save_csv', default=True)
 args = parser.parse_args()
 
 def str2bool(v):
@@ -334,16 +336,19 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
 
 if __name__ == '__main__':
     
-    complete_arosics_process(path_in = "D:/Phenologie/arosics_tests/data_juliette/2019_04_05_dynafor_9_2019_dynafor_9ha_transparent_mosaic_group1.tif",
-                             ref_filepath = "D:/Phenologie/arosics_tests/data_juliette/DSM1m_Max.tif", 
-                             out_dir_path = "D:/Phenologie/arosics_tests/outputs_juliette", 
-                             corr_type = 'local', 
-                             dynamic_corr=False,
-                             apply_matrix=True,
-                             save_csv = False,
-                             save_vector_plot=True
+    complete_arosics_process(path_in = args.path_in,
+                             ref_filepath = args.ref_filepath, 
+                             out_dir_path = args.out_dir_path, 
+                             corr_type = args.corr_type, 
+                             mp = args.mp,
+                             max_shift = args.max_shift,
+                             max_iter = args.max_iter,
+                             grid_res = args.grid_res,
+                             window_pos = args.wp,
+                             window_size = args.ws,
+                             dynamic_corr = args.dynamic_corr,
+                             apply_matrix = args.apply_matrix,
+                             save_csv = args.save_csv,
+                             save_vector_plot = args.save_plot
                              )
     
-
- 
-

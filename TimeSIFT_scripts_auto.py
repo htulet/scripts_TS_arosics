@@ -22,9 +22,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--crs')
 parser.add_argument('--pathDIR')
 parser.add_argument('--out_dir_ortho')
-parser.add_argument('--out_dir_dem')
-parser.add_argument('--resol_ref')
-parser.add_argument('--data_type')
+parser.add_argument('--out_dir_dem', default = None)
+parser.add_argument('--out_dir_project', default = None)
+parser.add_argument('--resol_ref', default = 0.05)
+parser.add_argument('--data_type', default = 'RGB')
+parser.add_argument('--site_name', default = '')
+parser.add_argument('--calibrate_col', default = True)
+parser.add_argument('--sun_sensor', default = False)
+parser.add_argument('--group_by_flight', default = False)
 args = parser.parse_args()
 
 
@@ -374,19 +379,39 @@ def Time_SIFT_process(pathDIR,
     #os.remove(os.path.join(out_dir_ortho, '_temp_.psx'))
     #shutil.rmtree(os.path.join(out_dir_ortho, '_temp_.files'))
     
-"""
+
 if __name__ == '__main__':
 
-    #doc = scan.Document()
-    #complete_process_RGB(doc, pathDIR="Y:\RGB", resol_ref=0.05, crs="EPSG::32622")
     print("args : ", args)
-    Time_SIFT_process(pathDIR="Y:/RGB/RGB", out_dir_ortho= "Z:/shared/PhenOBS/Paracou/Metashape/RGB_Broad_Mosaics/4D_050324/ORTHO", out_dir_DEM= "Z:/shared/PhenOBS/Paracou/Metashape/RGB_Broad_Mosaics/4D_050324/DEM", 
-                         data_type="RGB", resol_ref=0.05, crs="EPSG::32622")
-    #complete_process_and_save(doc, pathDIR = args.path_in, resol_ref = args.resol_ref, crs = args.crs, doc)
-    #complete_process_MS(doc, pathDIR="Y:/MS/P4M/batch_test", resol_ref=0.05, crs="EPSG::32622")
-    #add_all_chunks(doc, "Y:/RGB")
+    Time_SIFT_process(pathDIR = args.pathDIR, 
+                      out_dir_ortho = args.out_dir_ortho, 
+                      out_dir_DEM = args.out_dir_dem, 
+                      out_dir_project = args.out_dir_project,
+                      data_type = args.data_type, 
+                      resol_ref = args.resol_ref, 
+                      crs = args.crs,
+                      site_name = args.site_name,
+                      calibrate_col = args.calibrate_col,
+                      sun_sensor = args.sun_sensor,
+                      group_by_flight = args.group_by_flight,
+                      )
     
-    #doc.save(args.path_out)
-    #doc.save("Z:/users/GaelleViennois/Phenobs_recalage/test.psx")
 
-"""
+
+
+
+
+
+    parser.add_argument('--crs')
+    parser.add_argument('--pathDIR')
+    parser.add_argument('--out_dir_ortho')
+    parser.add_argument('--out_dir_dem', default = None)
+    parser.add_argument('--out_dir_project', default = None)
+    parser.add_argument('--resol_ref', default = 0.05)
+    parser.add_argument('--data_type', default = 'RGB')
+    parser.add_argument('--site_name', default = '')
+    parser.add_argument('--calibrate_col', default = True)
+    parser.add_argument('--sun_sensor', default = False)
+    parser.add_argument('--group_by_flight', default = False)
+
+

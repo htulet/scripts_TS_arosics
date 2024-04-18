@@ -1,13 +1,11 @@
 library(reticulate)
 
-path_to_env <- "C:/Users/U051-U219/miniconda3/envs/env_R"       #Put the name of your python environment here
+path_to_env <- "C:/Users/tulet/miniconda3/envs/test_d"       #Put the name of your python environment here
 use_python(path_to_env)
 
-arosics_script_path <- "D:/pipeline_TS/scripts_TS_arosics/arosics_chain.py"
-TS_script_path <- '//amap-data.cirad.fr/work/users/HadrienTulet/scripts_TS_arosics/2023-07-13_TimeSIFT_scripts_auto.py'
+init_path <- "D:/Phenologie/Pipeline/scripts_TS_arosics/__init__.py"
 
-source_python(arosics_script_path)
-source_python(TS_script_path)
+source_python(init_path)
 
 
 
