@@ -12,6 +12,7 @@ import time
 import pandas as pd
 from shapely.geometry import Polygon
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--path_in')
 parser.add_argument('--ref_filepath')
@@ -28,6 +29,7 @@ parser.add_argument('--apply_matrix', default=False)
 parser.add_argument('--save_plot', default=False)
 parser.add_argument('--save_csv', default=True)
 args = parser.parse_args()
+
 
 def str2bool(v):
     """
@@ -138,43 +140,26 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
     """
     Complete pipeline that uses arosics to perform a global or local co-registration on a file or a group of files located inside a folder. In the case of a local CoReg, option to save the tie points data and the vector shift map.
 
-    Parameters:
-        path_in (str): 
-            Path to the target image, or to a folder containing multiple taget images. Images must be of Geotiff format
-        ref_filepath (str): 
-            Path to the refernce image 
-        out_dir_path (str): 
-            Directory where the outputs will be saved
-        corr_type (str): 
-            Type of co-registration. Either 'global' (default) or 'local'
-        max_shift (int): 
-            maximum shift distance in reference image pixel units
-        max_iter (int): 
-            maximum number of iterations for matching (default: 5)
-        window_size (int): 
-            custom matching window size [pixels] as (X, Y) tuple (default: (256,256))
-        window_pos (tuple(int)): 
-            custom matching window position as (X, Y) map coordinate in the same projection as the reference image (default: central position of image overlap). Only used when performing global co-registration
-        grid_res (int): 
-            tie point grid resolution in pixels of the target image (x-direction). Only applies to local co-registration
-        mp (bool): 
-            Whether or not to do multiprocessing. If True, uses all CPU available. If False (default), uses only 1 CPU. 
-        save_csv (bool): 
-            If True (default), saves the tie points data in a csv file. Has an effect only when performing local co-registration
-        save_vector_plot (bool): 
-            If True (default), saves the a map of the calculated tie point grid in a JPEG file. Has an effect only when performing local co-registration
-        dynamic_corr (bool): 
-            When correcting multiple images, whether or not to use the last corrected image as reference for the next coregistration.
-            If False (default), all images are corrected using 'ref_filepath' as the reference image
-            If True, image 1 will use 'ref_filepath' as a reference, then image N (N>=2) will use the corrected version of image N-1 as reference
-        apply_matrix (bool): 
-            When correcting multiple image, whether or not to directly apply the shifts computed for the first image to all the remaining ones, instead of computing the shifts for each one independantly. Defaults to False.
-            !! Warning !! : Using this option allows faster computing time and better alignement between input images, but will create problems if those images have different bounds.
-            In this verson, only the intersection of the input images is kept after coregistration
-
+    :param str path_in: Path to the target image, or to a folder containing multiple target images. Images must be of Geotiff format.
+    :param str ref_filepath: Path to the reference image.
+    :param str out_dir_path: Directory where the outputs will be saved.
+    :param str corr_type: Type of co-registration. Either 'global' (default) or 'local'.
+    :param int max_shift: Maximum shift distance in reference image pixel units.
+    :param int max_iter: Maximum number of iterations for matching (default: 5).
+    :param int grid_res: Tie point grid resolution in pixels of the target image (x-direction). Only applies to local co-registration.
+    :param int window_size: Custom matching window size [pixels] as (X, Y) tuple (default: (256,256)).
+    :param tuple window_pos: Custom matching window position as (X, Y) map coordinate in the same projection as the reference image (default: central position of image overlap). Only used when performing global co-registration.
+    :param bool mp: Whether or not to do multiprocessing. If True, uses all available CPU cores. If False (default), uses only 1 CPU.
+    :param bool save_csv: If True (default), saves the tie points data in a CSV file. Has an effect only when performing local co-registration.
+    :param bool save_vector_plot: If True (default), saves the a map of the calculated tie point grid in a JPEG file. Has an effect only when performing local co-registration.
+    :param bool dynamic_corr: When correcting multiple images, whether or not to use the last corrected image as reference for the next co-registration.
+        If False (default), all images are corrected using 'ref_filepath' as the reference image.
+        If True, image 1 will use 'ref_filepath' as a reference, then image N (N>=2) will use the corrected version of image N-1 as reference.
+    :param bool apply_matrix: When correcting multiple images, whether or not to directly apply the shifts computed for the first image to all the remaining ones, instead of computing the shifts for each one independently. Defaults to False.
+        !! Warning !! : Using this option allows faster computing time and better alignment between input images, but will create problems if those images have different bounds.
+        In this version, only the intersection of the input images is kept after coregistration.
                         
-    Returns:
-        A COREG object (if path_in is a file) or a list of COREG objects (if path_in is a folder) containing all info on the calculated shifts
+    :returns: A COREG object (if path_in is a file) or a list of COREG objects (if path_in is a folder) containing all info on the calculated shifts.
     """
 
     assert corr_type in ['global', 'local']
@@ -235,42 +220,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
                 glist.append(tf[2])
                 dlist.append(tf[2] + tf[0]*meta['width'])
             
-            """
-            The following section is a way to address the issue that, when applying the same shifts to initially aligned images with different bounds, their corrected versions will not be aligned, because the transform is applied to the upper-left corner of the image.
-            The solution found below padds the smaller input images so that they all have the same top-left coordinates. This however results in the output images taking a little more space than necessary.
-            """
-
-            """
-            if not (all(x == hlist[0] for x in hlist) and all(x == glist[0] for x in glist)):     #and (np.max(dlist)-np.max(glist)) < 0.9*(np.max(dlist)-np.min(glist)) and (np.min(hlist)-np.max(blist)) < 0.9*(np.max(hlist)-np.max(blist))  #if apply_mask
-                rm_temp_files=True
-                mask_coords = [np.max(glist), np.min(blist), np.max(dlist), np.min(hlist)]
-                geom = Polygon([(mask_coords[0], mask_coords[1]), (mask_coords[0], mask_coords[3]), (mask_coords[2], mask_coords[3]), (mask_coords[2], mask_coords[1])])
-                print("Mask : ", geom.bounds)
-                #All images are cropped to fit the geometry of the mask
-                for i in range(len(files)) :
-                    file = files[i]
-                    rast = rasterio.open(os.path.join(path_in, file))
-                    img = rast.read()
-                    mask = features.rasterize([geom],
-                                                out_shape = rast.shape,
-                                                transform = rast.transform,
-                                                default_value=1)
-                    new_img = np.tile(mask, (3,1,1)) * img
-                    nonzero_rows, nonzero_cols = np.any(new_img != 0, axis=(0,2)), np.any(new_img != 0, axis=(0,1))
-                    red_new_img = new_img[:, nonzero_rows][:,:, nonzero_cols]
-                    print(red_new_img.shape)
-                    file_meta = rast.meta.copy()
-                    target_tf = rasterio.Affine(list(rast.meta.copy()['transform'])[0], 0.0, mask_coords[0], 0.0, list(rast.meta.copy()['transform'])[4], mask_coords[3])
-                    file_meta['transform'] = target_tf       
-                    #file_meta['crs'] = rasterio.open(ref_filepath).meta['crs']
-                    file_meta['height'], file_meta['width'] = red_new_img.shape[1:]
-                    out_path = os.path.join(path_in, f"{file.split('.')[0]}_temp.tif")
-                    files[i] = f"{file.split('.')[0]}_temp.tif"
-                    rast.close()
-                    with rasterio.open(out_path, "w", **file_meta) as ds_ref:
-                            ds_ref.write(red_new_img)
-                            ds_ref.close()
-            """
+            
             if not (all(x == hlist[0] for x in hlist) and all(x == glist[0] for x in glist)):     #and (np.max(dlist)-np.max(glist)) < 0.9*(np.max(dlist)-np.min(glist)) and (np.min(hlist)-np.max(blist)) < 0.9*(np.max(hlist)-np.max(blist))  #if apply_mask
                 rm_temp_files=True
                 mask_coords = [np.min(glist), np.min(blist), np.max(dlist), np.max(hlist)]

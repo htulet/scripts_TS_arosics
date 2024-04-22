@@ -281,29 +281,20 @@ def Time_SIFT_process(pathDIR,
     Executes the complete Time_SIFT process, calling all the other functions. The input folder should be containing subfolders named after each of the flights, that themselves contain all the photos. All these photos will then be merged, aligned,
     then orthomosaic and (optionally) DEMs will be generated for each date (or for each flight)
 
-    Parameters:
-    pathDIR (str): 
-        Path to the folder where the data is located. Inside this folder, there should be one subfolder per flight, with the date of the flight specified in the folder name, preferably at the beginning in the YYYYMMDD foramt
-    crs (str): 
-        Coordinate system used, in a string format. Exemple : crs="EPSG::32622" (default value)
-    resol_ref (float): 
-        The resolution (in meters) used to generate DEMs and orthomosaics. Defaults to 0.05
-    data_type (str): 
-        The type of the data used. Either 'RGB' (default) or 'MS' (for multispectral images)
-    out_dir_ortho (str): 
-        Folder where the orthomosaics are saved 
-    out_dir_DEM (str, optional): 
-        Folder where the DEMs are saved. If no path is specified, the DEMs are not saved by default. 
-    out_dir_project (str, optional): 
-        Folder where the Metashape project is saved. If no path is specified, the project is not saved by default
-    site_name (str, optional): 
-        Adds the data site name into the names of all created folders and files, to better separate generated data from different projects. If not specified, the names will stay generic
-    calibrate_col (bool): 
-        Whether or not to apply white balance, defaults to True
-    sun_sensor (bool): 
-        Whether or not to calibrate the reflectance using the sun sensor. Only applies to multispectral images, defaults to False
-    group_by_flight (bool): 
-        If True, regroups data by flight. Else, regroup it by date (default)
+    :param str pathDIR: Path to the folder where the data is located. Inside this folder, there should be one subfolder per flight, with the date of the flight specified in the folder name, preferably at the beginning in the YYYYMMDD format.
+    :param str out_dir_ortho: Folder where the orthomosaics are saved.
+    :param str out_dir_DEM: Folder where the DEMs are saved. If no path is specified, the DEMs are not saved by default.
+    :param str out_dir_project: Folder where the Metashape project is saved. If no path is specified, the project is not saved by default.
+    :param str data_type: The type of the data used. Either 'RGB' (default) or 'MS' (for multispectral images).
+    :param float resol_ref: The resolution (in meters) used to generate DEMs and orthomosaics. Defaults to 0.05.
+    :param str crs: Coordinate system used, in a string format. Example: crs="EPSG::32622" (default value).
+    :param str site_name: Adds the data site name into the names of all created folders and files, to better separate generated data from different projects. If not specified, the names will stay generic.
+    :param bool calibrate_col: Whether or not to apply white balance. Defaults to True.
+    :param bool sun_sensor: Whether or not to calibrate the reflectance using the sun sensor. Only applies to multispectral images. Defaults to False.
+    :param bool group_by_flight: If True, regroups data by flight. Else, regroup it by date (default).
+    :param doc: A scan.Document object. Defaults to an empty document.
+
+    :return: None
     """
         
     assert data_type in ["RGB", "MS"]
