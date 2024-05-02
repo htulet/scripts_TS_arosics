@@ -30,6 +30,7 @@ parser.add_argument('--site_name', default = '')
 parser.add_argument('--calibrate_col', default = True)
 parser.add_argument('--sun_sensor', default = False)
 parser.add_argument('--group_by_flight', default = False)
+parser.add_argument('--downscale_factor', default = 1)
 args = parser.parse_args()
 
 
@@ -139,13 +140,13 @@ def merge_chunk_TimeSIFT(doc = scan.Document()):
     print("Temps écoulé pour la fusion : ", time.time() - start_time) 
 
 
-def align_TimeSIFT_chunk(doc = scan.Document()):
+def align_TimeSIFT_chunk(doc = scan.Document(), downscale_factor = 1):
     """
     Aligns all cameras in the merged chunk
     """
     start_time = time.time()
     TS_chunk=[chk for chk in doc.chunks if re.search("TimeSIFT",chk.label) is not None][0]
-    TS_chunk.matchPhotos(downscale=1, generic_preselection=True, reference_preselection=True,
+    TS_chunk.matchPhotos(downscale=downscale_factor, generic_preselection=True, reference_preselection=True,
                       reference_preselection_mode=scan.ReferencePreselectionSource, keypoint_limit=100000,
                       tiepoint_limit=10000,keep_keypoints=False)
     # boucle pour ré-aligner les photos non-alignées
@@ -153,7 +154,7 @@ def align_TimeSIFT_chunk(doc = scan.Document()):
     nb_aligned_after = 100
     while nb_aligned_after != nb_aligned_before:
         nb_aligned_before = len([i for i in TS_chunk.cameras if i.transform])
-        TS_chunk.matchPhotos(downscale=1, generic_preselection=True, reference_preselection=True,
+        TS_chunk.matchPhotos(downscale=downscale_factor, generic_preselection=True, reference_preselection=True,
                           reference_preselection_mode=scan.ReferencePreselectionSource, keypoint_limit=200000,
                           tiepoint_limit=20000,keep_keypoints=False)
         TS_chunk.alignCameras()
@@ -266,8 +267,8 @@ def process_splited_TimeSIFT_chunks_one_by_one(doc = scan.Document(), out_dir_or
 #TODO : confirm whether or not DEMs and project are to be saved by default
 def Time_SIFT_process(pathDIR,
                       out_dir_ortho, 
-                      out_dir_DEM=None,      #""
-                      out_dir_project=None,    #""
+                      out_dir_DEM=None,      
+                      out_dir_project=None,   
                       data_type="RGB",
                       resol_ref=0.05, 
                       crs="EPSG::32622", 
@@ -275,6 +276,7 @@ def Time_SIFT_process(pathDIR,
                       calibrate_col = True,
                       sun_sensor = False,
                       group_by_flight = False,
+                      downscale_factor = 1,
                       doc = scan.Document(),
                       ):
     """
@@ -335,7 +337,7 @@ def Time_SIFT_process(pathDIR,
         TS_chunk = [chk for chk in doc.chunks if (re.search("TimeSIFT", chk.label) is not None)][0]
         TS_chunk.calibrateReflectance(use_sun_sensor=True)
 
-    align_TimeSIFT_chunk(doc)
+    align_TimeSIFT_chunk(doc, downscale_factor = downscale_factor)
     t_align = time.time()
     print("Temps écoulé pour l'alignement : ", t_align - t_add_data)
     
@@ -385,24 +387,5 @@ if __name__ == '__main__':
                       calibrate_col = args.calibrate_col,
                       sun_sensor = args.sun_sensor,
                       group_by_flight = args.group_by_flight,
+                      downscale_factor = args.downscale_factor,
                       )
-    
-
-
-
-
-
-
-    parser.add_argument('--crs')
-    parser.add_argument('--pathDIR')
-    parser.add_argument('--out_dir_ortho')
-    parser.add_argument('--out_dir_dem', default = None)
-    parser.add_argument('--out_dir_project', default = None)
-    parser.add_argument('--resol_ref', default = 0.05)
-    parser.add_argument('--data_type', default = 'RGB')
-    parser.add_argument('--site_name', default = '')
-    parser.add_argument('--calibrate_col', default = True)
-    parser.add_argument('--sun_sensor', default = False)
-    parser.add_argument('--group_by_flight', default = False)
-
-
