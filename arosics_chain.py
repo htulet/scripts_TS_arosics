@@ -211,7 +211,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
                     ref_filepath = path_out
                 
         else:
-            hlist, blist, glist, dlist = [], [], [], []
+            hlist, blist, glist, dlist, band_count = [], [], [], [], []
             for file in files:
                 meta = rasterio.open(os.path.join(path_in, file)).meta.copy()
                 tf = list(meta['transform'])
@@ -219,6 +219,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
                 blist.append(tf[5] + tf[4]*meta['height'])
                 glist.append(tf[2])
                 dlist.append(tf[2] + tf[0]*meta['width'])
+                band_count.append(meta['count'])
             
             
             if not (all(x == hlist[0] for x in hlist) and all(x == glist[0] for x in glist)):     #and (np.max(dlist)-np.max(glist)) < 0.9*(np.max(dlist)-np.min(glist)) and (np.min(hlist)-np.max(blist)) < 0.9*(np.max(hlist)-np.max(blist))  #if apply_mask
@@ -237,7 +238,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
                     img = rast.read()
                     print("image shape : ", img.shape)
 
-                    padded_data = np.ones((3, num_rows, num_cols), dtype=img.dtype)*255
+                    padded_data = np.ones((band_count[i], num_rows, num_cols), dtype=img.dtype)*255
                     
                     # Calculate the offset to pad the smaller raster
                     row_offset = int((geom.bounds[3] - rast.bounds.top) / abs(rast.res[0]))
@@ -252,7 +253,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
                     target_tf = rasterio.Affine(list(rast.meta.copy()['transform'])[0], 0.0, mask_coords[0], 0.0, list(rast.meta.copy()['transform'])[4], mask_coords[3])
                     profile = rast.profile
                     profile.update(width=padded_data.shape[2], height=padded_data.shape[1], transform=target_tf,
-                                    bounds=geom.bounds)
+                                    bounds=geom.bounds, count = band_count[i])
                     print("padded img shape : ", padded_data.shape)
                     out_path = os.path.join(path_in, f"{file.split('.')[0]}_temp.tif")
                     files[i] = f"{file.split('.')[0]}_temp.tif"
