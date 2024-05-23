@@ -10,14 +10,14 @@
 import os
 from os import path
 import re
-#import numpy as np
-#import Metashape as scan
-#import time
-#import argparse
-#import shutil
+import numpy as np
+import Metashape as scan
+import time
+import argparse
+import shutil
 
 #scan.License().activate('your_license_key')
-"""
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--crs')
 parser.add_argument('--pathDIR')
@@ -32,7 +32,7 @@ parser.add_argument('--sun_sensor', default = False)
 parser.add_argument('--group_by_flight', default = False)
 parser.add_argument('--downscale_factor', default = 1)
 args = parser.parse_args()
-"""
+
 
 def str2bool(v):
     """
@@ -50,7 +50,7 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
-def add_all_chunks(doc = None, pathDIR=None):
+def add_all_chunks(doc = scan.Document(), pathDIR=None):
     """
     Loads all RGB photos into the project, one chunk per subfolder in pathDIR
     """
@@ -66,7 +66,7 @@ def add_all_chunks(doc = None, pathDIR=None):
         add_TimeSIFT_chunk(doc, epoch_name=ep)
 
 
-def add_TimeSIFT_chunk(doc = None, epoch_name=""):
+def add_TimeSIFT_chunk(doc = scan.Document(), epoch_name=""):
     """
     Adds a single RGB chunk to the project
     """
@@ -121,7 +121,7 @@ def add_all_MS_photos(doc = scan.Document(), pathDIR=None):
 """
 
 
-def merge_chunk_TimeSIFT(doc = None):
+def merge_chunk_TimeSIFT(doc = scan.Document()):
     """
     Merges all chunks into a single one
     """
@@ -140,7 +140,7 @@ def merge_chunk_TimeSIFT(doc = None):
     print("Temps écoulé pour la fusion : ", time.time() - start_time) 
 
 
-def align_TimeSIFT_chunk(doc =None, downscale_factor = 1):
+def align_TimeSIFT_chunk(doc = scan.Document(), downscale_factor = 1):
     """
     Aligns all cameras in the merged chunk
     """
@@ -167,7 +167,7 @@ def align_TimeSIFT_chunk(doc =None, downscale_factor = 1):
     print("Temps écoulé pour l'alignement : ", time.time() - start_time)
 
 
-def split_TimeSIFT_chunk(doc = None, group_by_flight = False):
+def split_TimeSIFT_chunk(doc = scan.Document(), group_by_flight = False):
     """
     After the alignement, splits the merged chunk into smaller chunks, each representing a date (default) or a flight
 
@@ -192,7 +192,7 @@ def split_TimeSIFT_chunk(doc = None, group_by_flight = False):
             NewChunk.remove(list_cameras)
 
 
-def merge_chunk_with_same_date(doc = None):
+def merge_chunk_with_same_date(doc = scan.Document()):
     """
     Not useful anymore. Merging by date now done in split_TIMESift_chunk
     """
@@ -213,7 +213,7 @@ def merge_chunk_with_same_date(doc = None):
 
     
 
-def process_splited_TimeSIFT_chunks_one_by_one(doc = None, out_dir_ortho = None, out_dir_DEM = None, site_name="", resol_ref = None, crs = None):
+def process_splited_TimeSIFT_chunks_one_by_one(doc = scan.Document(), out_dir_ortho = None, out_dir_DEM = None, site_name="", resol_ref = None, crs = None):
     """
     Generate depth map, dense cloud, DEM and orthomosaic for one image. Always saves orthomosaic and saves DEM if specified
 
@@ -277,7 +277,7 @@ def Time_SIFT_process(pathDIR,
                       sun_sensor = False,
                       group_by_flight = False,
                       downscale_factor = 1,
-                      doc = None,
+                      doc = scan.Document(),
                       ):
     """
     Executes the complete Time_SIFT process, calling all the other functions. The input folder should be containing subfolders named after each of the flights, that themselves contain all the photos. All these photos will then be merged, aligned,
