@@ -1,16 +1,16 @@
-import rasterio 
-import numpy as np
-from pyproj import CRS
-import sys
-import subprocess
-import argparse
-import os
-from arosics import COREG, COREG_LOCAL, DESHIFTER
-import rasterio.features as features
-from rasterio.windows import Window
-import time
-import pandas as pd
-from shapely.geometry import Polygon
+#import rasterio 
+#import numpy as np
+#from pyproj import CRS
+#import sys
+#import subprocess
+#import argparse
+#import os
+#from arosics import COREG, COREG_LOCAL, DESHIFTER
+#import rasterio.features as features
+#from rasterio.windows import Window
+#import time
+#import pandas as pd
+#from shapely.geometry import Polygon
 
 """
 parser = argparse.ArgumentParser()

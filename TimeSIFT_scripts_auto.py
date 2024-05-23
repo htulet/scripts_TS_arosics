@@ -10,11 +10,11 @@
 import os
 from os import path
 import re
-import numpy as np
-import Metashape as scan
-import time
-import argparse
-import shutil
+#import numpy as np
+#import Metashape as scan
+#import time
+#import argparse
+#import shutil
 
 #scan.License().activate('your_license_key')
 """
