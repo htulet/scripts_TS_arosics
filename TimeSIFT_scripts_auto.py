@@ -17,7 +17,7 @@ import argparse
 import shutil
 
 #scan.License().activate('your_license_key')
-
+"""
 parser = argparse.ArgumentParser()
 parser.add_argument('--crs')
 parser.add_argument('--pathDIR')
@@ -32,7 +32,7 @@ parser.add_argument('--sun_sensor', default = False)
 parser.add_argument('--group_by_flight', default = False)
 parser.add_argument('--downscale_factor', default = 1)
 args = parser.parse_args()
-
+"""
 
 def str2bool(v):
     """
@@ -372,7 +372,7 @@ def Time_SIFT_process(pathDIR,
     #os.remove(os.path.join(out_dir_ortho, '_temp_.psx'))
     #shutil.rmtree(os.path.join(out_dir_ortho, '_temp_.files'))
     
-
+"""
 if __name__ == '__main__':
 
     print("args : ", args)
@@ -389,3 +389,4 @@ if __name__ == '__main__':
                       group_by_flight = args.group_by_flight,
                       downscale_factor = args.downscale_factor,
                       )
+"""

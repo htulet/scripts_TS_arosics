@@ -12,7 +12,7 @@ import time
 import pandas as pd
 from shapely.geometry import Polygon
 
-
+"""
 parser = argparse.ArgumentParser()
 parser.add_argument('--path_in')
 parser.add_argument('--ref_filepath')
@@ -29,7 +29,7 @@ parser.add_argument('--apply_matrix', default=False)
 parser.add_argument('--save_plot', default=False)
 parser.add_argument('--save_csv', default=True)
 args = parser.parse_args()
-
+"""
 
 def str2bool(v):
     """
@@ -284,7 +284,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
     else:
         raise ValueError(f"The specified path '{path_in}' is not a file nor a directory.")
 
-
+"""
 if __name__ == '__main__':
     
     complete_arosics_process(path_in = args.path_in,
@@ -303,3 +303,4 @@ if __name__ == '__main__':
                              save_vector_plot = args.save_plot
                              )
     
+"""
