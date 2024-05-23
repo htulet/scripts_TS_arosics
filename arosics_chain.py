@@ -284,7 +284,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
     else:
         raise ValueError(f"The specified path '{path_in}' is not a file nor a directory.")
 
-"""
+
 if __name__ == '__main__':
     
     complete_arosics_process(path_in = args.path_in,
@@ -303,4 +303,3 @@ if __name__ == '__main__':
                              save_vector_plot = args.save_plot
                              )
     
-"""
