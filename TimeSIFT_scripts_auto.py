@@ -84,7 +84,6 @@ def add_TimeSIFT_chunk(doc = scan.Document(), epoch_name=""):
         for cam in chunk.cameras:
             cam.label = (str(chunk.label) + "_EPOCH_" + cam.label)
 
-
 """
 def add_all_MS_photos(doc = scan.Document(), pathDIR=None):
     
@@ -252,15 +251,16 @@ def process_splited_TimeSIFT_chunks_one_by_one(doc = scan.Document(), out_dir_or
         img_compress.tiff_big = True
         #doc.save(os.path.join(out_dir_ortho, '_temp_.psx'))
         try :
-            NewChunk.exportRaster(os.path.join(out_dir_ortho, f"{str(NewChunk.label)}{site_name}_ORTHO.tif"),source_data=scan.OrthomosaicData, image_format=scan.ImageFormatTIFF,
+            NewChunk.exportRaster(os.path.join(out_dir_ortho, f"{str(NewChunk.label)}{site_name}_ORTHO.tif"),source_data=scan.OrthomosaicData, image_format=scan.ImageFormatTIFF, image_compression=img_compress,
                                 projection=proj, resolution=resol_ref,clip_to_boundary=True,save_alpha=False, split_in_blocks = False)
         #if the raster file is too big, it will be divided into blocks
         except:
-            NewChunk.exportRaster(os.path.join(out_dir_ortho, f"{str(NewChunk.label)}{site_name}_ORTHO.tif"),source_data=scan.OrthomosaicData, image_format=scan.ImageFormatTIFF,
+            os.remove(os.path.join(out_dir_ortho, f"{str(NewChunk.label)}{site_name}_ORTHO.tif"))
+            NewChunk.exportRaster(os.path.join(out_dir_ortho, f"{str(NewChunk.label)}{site_name}_ORTHO.tif"),source_data=scan.OrthomosaicData, image_format=scan.ImageFormatTIFF, image_compression=img_compress,
                                     projection=proj, resolution=resol_ref,clip_to_boundary=True,save_alpha=False, split_in_blocks = True, block_width=10000, block_height=10000)
 
         if out_dir_DEM is not None:
-            NewChunk.exportRaster(os.path.join(out_dir_DEM, f"{str(NewChunk.label)}{site_name}_DEM.tif"),source_data=scan.ElevationData, image_format=scan.ImageFormatTIFF,
+            NewChunk.exportRaster(os.path.join(out_dir_DEM, f"{str(NewChunk.label)}{site_name}_DEM.tif"),source_data=scan.ElevationData, image_format=scan.ImageFormatTIFF, image_compression=img_compress,
                                 projection=proj, resolution=resol_ref,clip_to_boundary=True, save_alpha=False)
 
 
