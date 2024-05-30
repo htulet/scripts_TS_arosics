@@ -82,7 +82,6 @@ def add_TimeSIFT_chunk(doc = scan.Document(), epoch_name=""):
         for cam in chunk.cameras:
             cam.label = (str(chunk.label) + "_EPOCH_" + cam.label)
 
-
 """
 def add_all_MS_photos(doc = scan.Document(), pathDIR=None):
     
