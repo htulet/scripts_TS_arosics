@@ -1,6 +1,4 @@
-# Script for Time-SIFT multi-temporal images alignment
-#
-# This is python script for PhotoScan Pro, based on the following publication :
+# This script is based on the  :
 #
 # D. Feurer, F. Vinatier, Joining multi-epoch archival aerial images in a single SfM block allows 3-D change detection with almost exclusively image information, ISPRS Journal of Photogrammetry and Remote Sensing, Volume 146, 2018, Pages 495-506, ISSN 0924-2716, https://doi.org/10.1016/j.isprsjprs.2018.10.016. (http://www.sciencedirect.com/science/article/pii/S0924271618302946)
 
@@ -247,20 +245,19 @@ def process_splited_TimeSIFT_chunks_one_by_one(doc = scan.Document(), out_dir_or
         proj = scan.OrthoProjection()
         proj.type=scan.OrthoProjection.Type.Planar
         proj.crs=scan.CoordinateSystem(crs)
-        img_compress=scan.ImageCompression
-        img_compress.tiff_compression=scan.ImageCompression.TiffCompressionLZW
-        img_compress.tiff_big = True
-        #doc.save(os.path.join(out_dir_ortho, '_temp_.psx'))
+        img_compress=scan.ImageCompression(tiff_compression = scan.ImageCompression.TiffCompressionLZW, tiff_big= True)
+        doc.save(os.path.join(out_dir_ortho, '_temp_.psx'))
         try :
             NewChunk.exportRaster(os.path.join(out_dir_ortho, f"{str(NewChunk.label)}{site_name}_ORTHO.tif"),source_data=scan.OrthomosaicData, image_format=scan.ImageFormatTIFF,
-                                projection=proj, resolution=resol_ref,clip_to_boundary=True,save_alpha=False, split_in_blocks = False)
+                                projection=proj, resolution=resol_ref,clip_to_boundary=True,save_alpha=False, split_in_blocks = False, image_compression = img_compress)
         #if the raster file is too big, it will be divided into blocks
         except:
+            os.remove(os.path.join(out_dir_ortho, f"{str(NewChunk.label)}{site_name}_ORTHO.tif"))
             NewChunk.exportRaster(os.path.join(out_dir_ortho, f"{str(NewChunk.label)}{site_name}_ORTHO.tif"),source_data=scan.OrthomosaicData, image_format=scan.ImageFormatTIFF,
-                                    projection=proj, resolution=resol_ref,clip_to_boundary=True,save_alpha=False, split_in_blocks = True, block_width=10000, block_height=10000)
+                                    projection=proj, resolution=resol_ref,clip_to_boundary=True,save_alpha=False, split_in_blocks = True, block_width=10000, block_height=10000, image_compression=img_compress)
 
         if out_dir_DEM is not None:
-            NewChunk.exportRaster(os.path.join(out_dir_DEM, f"{str(NewChunk.label)}{site_name}_DEM.tif"),source_data=scan.ElevationData, image_format=scan.ImageFormatTIFF,
+            NewChunk.exportRaster(os.path.join(out_dir_DEM, f"{str(NewChunk.label)}{site_name}_DEM.tif"),source_data=scan.ElevationData, image_format=scan.ImageFormatTIFF, image_compression = img_compress,
                                 projection=proj, resolution=resol_ref,clip_to_boundary=True, save_alpha=False)
 
 
