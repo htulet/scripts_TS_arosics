@@ -245,6 +245,7 @@ def process_splited_TimeSIFT_chunks_one_by_one(doc = scan.Document(), out_dir_or
         proj.type=scan.OrthoProjection.Type.Planar
         proj.crs=scan.CoordinateSystem(crs)
         img_compress=scan.ImageCompression(tiff_compression = scan.ImageCompression.TiffCompressionLZW, tiff_big= True)
+        img_compress.tiff_big = True            #apparently necessary, maybe because of ImageCompression init that doesn't deal with bigTiff ?
         doc.save(os.path.join(out_dir_ortho, '_temp_.psx'))
         try :
             NewChunk.exportRaster(os.path.join(out_dir_ortho, f"{str(NewChunk.label)}{site_name}_ORTHO.tif"),source_data=scan.OrthomosaicData, image_format=scan.ImageFormatTIFF,
@@ -272,7 +273,7 @@ def Time_SIFT_process(pathDIR,
                       calibrate_col = True,
                       sun_sensor = False,
                       group_by_flight = False,
-                      downscale_factor = 1,
+                      downscale_factor_alignement = 1,
                       doc = scan.Document(),
                       ):
     """
@@ -334,7 +335,7 @@ def Time_SIFT_process(pathDIR,
         TS_chunk = [chk for chk in doc.chunks if (re.search("TimeSIFT", chk.label) is not None)][0]
         TS_chunk.calibrateReflectance(use_sun_sensor=True)
 
-    align_TimeSIFT_chunk(doc, downscale_factor = downscale_factor)
+    align_TimeSIFT_chunk(doc, downscale_factor = downscale_factor_alignement)
     t_align = time.time()
     print("Temps écoulé pour l'alignement : ", t_align - t_add_data)
     
