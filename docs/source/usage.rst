@@ -8,8 +8,11 @@ Installation
 Dowloading python, R, RStudio, Anaconda
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 To use TS_arosics_alignement, first install Python (3.7 or superior), Anaconda and R :
+
 - Python : `https://www.python.org/downloads/ <https://www.python.org/downloads/>`_
+
 - Anaconda : `https://www.anaconda.com/download/ <https://www.anaconda.com/download/>`_ 
+
 - R and RStudio : `https://posit.co/download/rstudio-desktop/ <https://posit.co/download/rstudio-desktop/>`_. *R and Rstudio are only useful if you want to execute the code using a R IDE.*
 
 Python environment  
@@ -40,8 +43,10 @@ Fist, install the reticulate package in your R environment using the Rstudio con
    $ install.packages('reticulate')
 
 Then, you can either:
+
 - Copy the path of the environment you just created in the beginning of the script "exec_python_recalage.R"
 (you can access it by using the command **conda info --envs** in an anaconda prompt). The python env will be used only for this script.
+
 - In RStudio, you can go to Tools -> Global Options -> Python -> Select... -> Conda Environments, and select the env you just created. 
 Warning : It will become the default python interpreter for all your R scripts 
 
