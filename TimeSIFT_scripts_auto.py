@@ -4,7 +4,7 @@
 
 
 
-"""
+
 import os
 from os import path
 import re
@@ -30,7 +30,7 @@ parser.add_argument('--sun_sensor', default = False)
 parser.add_argument('--group_by_flight', default = False)
 parser.add_argument('--downscale_factor', default = 1)
 args = parser.parse_args()
-"""
+
 
 def str2bool(v):
     """
