@@ -336,7 +336,7 @@ def Time_SIFT_process(pathDIR,
     #os.remove(os.path.join(out_dir_ortho, '_temp_.psx'))
     #shutil.rmtree(os.path.join(out_dir_ortho, '_temp_.files'))
     
-
+"""
 if __name__ == '__main__':
 
     print("args : ", args)
@@ -353,3 +353,4 @@ if __name__ == '__main__':
                       group_by_flight = args.group_by_flight,
                       downscale_factor = args.downscale_factor,
                       )
+"""
