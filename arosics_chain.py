@@ -12,7 +12,7 @@ import time
 import pandas as pd
 from shapely.geometry import Polygon
 
-
+"""
 parser = argparse.ArgumentParser()
 parser.add_argument('--path_in')
 parser.add_argument('--ref_filepath')
@@ -29,7 +29,7 @@ parser.add_argument('--apply_matrix', default=False)
 parser.add_argument('--save_plot', default=False)
 parser.add_argument('--save_csv', default=True)
 args = parser.parse_args()
-
+"""
 
 def str2bool(v):
     """
@@ -126,7 +126,7 @@ def call_arosics(path_in, path_ref, path_out=None, corr_type = 'global', max_shi
 
     print("Input image : ", os.path.basename(path_in))
     print("Reference image : ", os.path.basename(path_ref))
-    
+
     if corr_type=='global':
         CR = COREG(path_ref, path_in, path_out=path_out, fmt_out="GTIFF", ws=(window_size, window_size), wp=window_pos, max_shift=max_shift, max_iter=max_iter, CPUs=CPUs)
         CR.correct_shifts()
