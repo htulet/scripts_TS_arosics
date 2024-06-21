@@ -44,11 +44,11 @@ Fist, install the reticulate package in your R environment using the Rstudio con
 
 Then, you can either:
 
-- Copy the path of the environment you just created in the beginning of the script "exec_python_recalage.R"
-(you can access it by using the command **conda info --envs** in an anaconda prompt). The python env will be used only for this script.
+- Copy the path of the environment you just created in the beginning of the script "exec_python_recalage.R" 
+   (you can access it by using the command **conda info --envs** in an anaconda prompt). The python env will be used only for this script.
 
 - In RStudio, you can go to Tools -> Global Options -> Python -> Select... -> Conda Environments, and select the env you just created. 
-Warning : It will become the default python interpreter for all your R scripts 
+   Warning : It will become the default python interpreter for all your R scripts 
 
 
 Activation of the Metashape key 
