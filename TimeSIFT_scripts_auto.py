@@ -4,7 +4,7 @@
 
 
 
-
+"""
 import os
 from os import path
 import re
@@ -15,7 +15,7 @@ import argparse
 import shutil
 
 #scan.License().activate('your_license_key')
-"""
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--crs')
 parser.add_argument('--pathDIR')
