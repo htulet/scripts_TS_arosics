@@ -1,6 +1,6 @@
 library(reticulate)
 
-path_to_env <- "C:/Users/tulet/miniconda3/envs/test_d"       #Put the name of your python environment here
+path_to_env <- "D:/tulet/envs/pipeline"       #Put the name of your python environment here
 use_python(path_to_env)
 
 init_path <- "D:/Phenologie/Pipeline/scripts_TS_arosics/__init__.py"
@@ -28,3 +28,8 @@ complete_arosics_process(path_in = "Z:/shared/PhenOBS/Paracou/Metashape/RGB_Broa
                          apply_matrix = 'False',
                          save_vector_plot='True',
                          save_csv='True')
+
+
+
+script_path <- "D:/Phenologie/Pipeline/scripts_TS_arosics/subprocess_test.py"
+source_python(script_path)

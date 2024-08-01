@@ -10,6 +10,9 @@ import rasterio.features as features
 from rasterio.windows import Window
 import time
 import pandas as pd
+import warnings
+from osgeo import gdal
+import pickle
 from shapely.geometry import Polygon
 
 
@@ -87,7 +90,99 @@ def harmonize_crs(input_path, ref_path, check_ref=True):
             ds_out.close()
 
 
-def call_arosics(path_in, path_ref, path_out=None, corr_type = 'global', max_shift=250, max_iter=100, window_size=1500, window_pos = (None, None), mp=None, grid_res=1000, save_csv = True, save_vector_plot = False):
+def to_GCPList(points_table, fill_val=-9999):
+    """
+    Creates a list of GCP in the proper format from the csv of coregistration results.
+    """
+
+    try:
+        GDF = points_table.loc[points_table.ABS_SHIFT != fill_val, :].copy()
+    except AttributeError:
+        # self.CoRegPoints_table has no attribute 'ABS_SHIFT' because all points have been excluded
+        return []
+
+    if getattr(GDF, 'empty'):  # GDF.empty returns AttributeError
+        return []
+    else:
+        # exclude all points flagged as outliers
+        if 'OUTLIER' in GDF.columns:
+            outliers = []
+            for a in GDF.OUTLIER:
+                try:
+                    a=int(a)
+                except:
+                    if a == 'True':
+                        a = True
+                    elif a == 'False':
+                        a = False
+                outliers.append(a)
+    
+            GDF.OUTLIER = outliers
+
+            GDF = GDF[GDF.OUTLIER.__eq__(False)].copy()
+
+        avail_TP = len(GDF)
+        if not avail_TP:
+            # no point passed all validity checks
+            return []
+
+        if avail_TP > 7000:
+            GDF = GDF.sample(7000)
+            warnings.warn('By far not more than 7000 tie points can be used for warping within a limited '
+                            'computation time (due to a GDAL bottleneck). Thus these 7000 points are randomly chosen '
+                            'out of the %s available tie points.' % avail_TP)
+
+        # calculate GCPs
+        GDF['X_MAP_new'] = GDF.X_MAP + GDF.X_SHIFT_M
+        GDF['Y_MAP_new'] = GDF.Y_MAP + GDF.Y_SHIFT_M
+        GDF['GCP'] = GDF.apply(lambda GDF_row: gdal.GCP(GDF_row.X_MAP_new,
+                                                        GDF_row.Y_MAP_new,
+                                                        0,
+                                                        GDF_row.X_IM,
+                                                        GDF_row.Y_IM),
+                                axis=1)
+        GCPList = GDF.GCP.tolist()
+
+        return GCPList
+    
+
+
+def apply_saved_matrix(im_path, out_dir_path, metadata_path, GCP_path = None):
+    """
+    Calls arosics functions to perform a global or local co-registration between two images. Option to save the coregistrated image, and in the case of a local CoReg, the tie points data and the vector shift map.
+
+    Parameters:
+        :param str im_path: Path to the target image, or to a folder containing multiple target images. Images must be of Geotiff format.
+        :param str out_dir_path: Directory where the outputs will be saved.
+        :param str metadata_path: path to the .pkl file where the metadata of the specified tranformation have been saved.
+        :param str GCP_path: path to the .csv file containing the results of the desired local coregistration. Defaults to None. If the desired transform is a result of a global co-registration, leave it that way.
+        
+    Returns:
+        Nothing
+    """
+    corr_type = 'global'
+    extensions = ('.tif', '.tiff', '.TIF', '.TIFF')
+    files = [file for file in sorted(os.listdir(im_path)) if file.endswith(extensions)]
+    print("files : ", files)
+    
+    for file in files:
+        with open(metadata_path, 'rb') as file:
+            coreg_info = pickle.load(file)
+            file.close()
+        
+        if GCP_path is not None:
+            corr_type = 'local'
+            GCP_df = pd.read_csv(GCP_path)
+        
+        coreg_info['GCPList'] = to_GCPList(GCP_df, -9999)
+        current_file_path = os.path.join(im_path, file)
+        path_out = os.path.join(out_dir_path, file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
+        CR = DESHIFTER(current_file_path, coreg_info, path_out=path_out, fmt_out="GTIFF")
+        CR.correct_shifts() 
+
+
+
+def call_arosics(path_in, path_ref, path_out=None, corr_type = 'global', max_shift=250, max_iter=100, window_size=1500, window_pos = (None, None), mp=None, grid_res=1000, save_data = True, save_vector_plot = False):
     """
     Calls arosics functions to perform a global or local co-registration between two images. Option to save the coregistrated image, and in the case of a local CoReg, the tie points data and the vector shift map.
 
@@ -112,8 +207,8 @@ def call_arosics(path_in, path_ref, path_out=None, corr_type = 'global', max_shi
             tie point grid resolution in pixels of the target image (x-direction). Only applies to local co-registration
         mp (int): 
             Number of CPUs to use. If None (default), all available CPUs are used. If mp=1, no multiprocessing is done. 
-        save_csv (bool): 
-            If True (default), saves the tie points data in a csv file. Has an effect only when performing local co-registration
+        save_data (bool): 
+            If True (default), saves the transformation metadata in a .pkl file, and the tie points data in a csv file. The latter only happens when performing local co-registration
         save_vector_plot (bool): 
             If True (default), saves the a map of the calculated tie point grid in a JPEG file. Has an effect only when performing local co-registration
 
@@ -130,18 +225,24 @@ def call_arosics(path_in, path_ref, path_out=None, corr_type = 'global', max_shi
     if corr_type=='global':
         CR = COREG(path_ref, path_in, path_out=path_out, fmt_out="GTIFF", ws=(window_size, window_size), wp=window_pos, max_shift=max_shift, max_iter=max_iter, CPUs=CPUs)
         CR.correct_shifts()
-        if save_csv :
-            shifts = CR.coreg_info['corrected_shifts_map']
-            shift_x, shift_y = shifts['x'], shifts['y']
-            df = pd.DataFrame({'Shift_X':[shift_x], 'Shift_Y':[shift_y]})
-            df.to_csv(os.path.join(os.path.dirname(path_out), os.path.basename(path_out).split('.')[0] + '_shift.csv'), index=False)
+        if save_data :
+            #shifts = CR.coreg_info['corrected_shifts_map']
+            #shift_x, shift_y = shifts['x'], shifts['y']
+            #df = pd.DataFrame({'Shift_X':[shift_x], 'Shift_Y':[shift_y]})
+            #df.to_csv(os.path.join(os.path.dirname(path_out), os.path.basename(path_out).split('.')[0] + '_shift.csv'), index=False)
+            with open(os.path.join(os.path.dirname(path_out), os.path.basename(path_out).split('.')[0] + '_metadata.pkl'), 'wb') as file:
+                pickle.dump(CR.coreg_info, file)
 
     elif corr_type=='local':
         CR = COREG_LOCAL(path_ref, path_in, path_out=path_out, fmt_out="GTIFF", window_size=(window_size, window_size), max_shift=max_shift, max_iter=max_iter, CPUs=CPUs, grid_res=grid_res)
         CR.correct_shifts()
-        if save_csv:
+        if save_data:
             df = CR.CoRegPoints_table
             df.to_csv(os.path.join(os.path.dirname(path_out), os.path.basename(path_out).split('.')[0] + '_CoRegPoints_table.csv'), index=False)
+            cor_info = CR.coreg_info
+            del(cor_info['GCPList'])
+            with open(os.path.join(os.path.dirname(path_out), os.path.basename(path_out).split('.')[0] + '_metadata.pkl'), 'wb') as file:
+                pickle.dump(cor_info, file)
         if save_vector_plot:
             DPI=300
             vector_scale=15
@@ -163,7 +264,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
     :param int window_size: Custom matching window size [pixels] as (X, Y) tuple (default: (256,256)).
     :param tuple window_pos: Custom matching window position as (X, Y) map coordinate in the same projection as the reference image (default: central position of image overlap). Only used when performing global co-registration.
     :param int mp: Number of CPUs to use. If None (default), all available CPUs are used. If mp=1, no multiprocessing is done.
-    :param bool save_csv: If True (default), saves the tie points data in a CSV file. Has an effect only when performing local co-registration.
+    :param bool save_csv: If True (default), saves the transformation metadata in a .pkl file, and the tie points data in a csv file. The latter only happens when performing local co-registration
     :param bool save_vector_plot: If True (default), saves the a map of the calculated tie point grid in a JPEG file. Has an effect only when performing local co-registration.
     :param bool dynamic_corr: When correcting multiple images, whether or not to use the last corrected image as reference for the next co-registration.
         If False (default), all images are corrected using 'ref_filepath' as the reference image.
@@ -182,6 +283,10 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
     save_vector_plot = str2bool(save_vector_plot)
     save_csv = str2bool(save_csv)
     mp = mp if mp is None else int(mp)
+    grid_res = int(grid_res)
+    window_size = window_size if window_size is None else int(window_size)
+    max_iter = int(max_iter)
+    max_shift = int(max_shift)
     #Set default values for window_size
     if corr_type == 'global':
         if window_size is None :
@@ -202,7 +307,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
         else:
             harmonize_crs(path_in, ref_filepath)
             path_out = os.path.join(out_dir_path, path_in.split('/')[-1].split('\\')[-1].split('.')[0] + f'_aligned_{corr_type}.tif')
-            CR = call_arosics(path_in, ref_filepath, path_out=path_out, corr_type=corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_csv=save_csv)
+            CR = call_arosics(path_in, ref_filepath, path_out=path_out, corr_type=corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_data=save_csv)
             return CR
             
     elif os.path.isdir(path_in):
@@ -219,7 +324,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
                 current_file_path = os.path.join(path_in, file)
                 harmonize_crs(current_file_path, ref_filepath, check_ref = True if i==0 else False)
                 path_out = os.path.join(out_dir_path, file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
-                CR = call_arosics(current_file_path, ref_filepath, path_out=path_out, corr_type=corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_csv=save_csv)
+                CR = call_arosics(current_file_path, ref_filepath, path_out=path_out, corr_type=corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_data=save_vector_plot, save_csv=save_csv)
                 list_CR.append(CR)
                 if dynamic_corr:
                     ref_filepath = path_out
@@ -280,7 +385,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
             first_file = files[0]
             harmonize_crs(os.path.join(path_in, first_file), ref_filepath)
             path_out = os.path.join(out_dir_path, first_file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
-            CR = call_arosics(os.path.join(path_in, first_file), ref_filepath, path_out=path_out, corr_type=corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_csv=save_csv)             
+            CR = call_arosics(os.path.join(path_in, first_file), ref_filepath, path_out=path_out, corr_type=corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_data=save_csv)             
             list_CR.append(CR)
             for file in files[1:]:
                 current_file_path = os.path.join(path_in, file)
