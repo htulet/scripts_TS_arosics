@@ -70,19 +70,18 @@ def harmonize_crs(input_path, ref_path, check_ref=True):
         with rasterio.open(input_path) as ds_in:
             img_in = ds_in.read()
             metadata_in = ds_in.meta.copy()
-            metadata_in['crs'] = crs_ref
             correction_needed = metadata_in['crs']!=metadata_ref['crs']
             print("harmonization needed : ", correction_needed)
             if correction_needed:
                 metadata_in['crs'] = crs_ref
             ds_in.close()  
-        if check_ref and not correction_needed:
+        if check_ref and correction_needed:
+            metadata_ref['crs'] = crs_ref
             img_ref = ds_ref.read()
             ds_ref.close()
             with rasterio.open(ref_path, "w", **metadata_ref) as ds_ref_out:
                 ds_ref_out.write(img_ref)
-                ds_ref_out.close()
-        metadata_ref['crs'] = crs_ref
+                ds_ref_out.close()     
         ds_ref.close()
     if correction_needed:
         with rasterio.open(input_path, "w", **metadata_in) as ds_out:
