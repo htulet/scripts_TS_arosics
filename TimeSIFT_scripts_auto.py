@@ -1,6 +1,7 @@
 # This script is based on the  :
 #
 # D. Feurer, F. Vinatier, Joining multi-epoch archival aerial images in a single SfM block allows 3-D change detection with almost exclusively image information, ISPRS Journal of Photogrammetry and Remote Sensing, Volume 146, 2018, Pages 495-506, ISSN 0924-2716, https://doi.org/10.1016/j.isprsjprs.2018.10.016. (http://www.sciencedirect.com/science/article/pii/S0924271618302946)
+# The code of the original plugin is available using the following DOI : 10.5281/zenodo.8359982
 
 
 import os
@@ -26,7 +27,8 @@ parser.add_argument('--site_name', default = '')
 parser.add_argument('--calibrate_col', default = True)
 parser.add_argument('--sun_sensor', default = False)
 parser.add_argument('--group_by_flight', default = False)
-parser.add_argument('--downscale_factor', default = 1)
+parser.add_argument('--downscale_factor_alignement', default = 1)
+parser.add_argument('--downscale_factor_depth_map', default = 2)
 args = parser.parse_args()
 
 
@@ -187,7 +189,7 @@ def process_splited_TimeSIFT_chunks_one_by_one(doc, out_dir_ortho = None, out_di
     """
     TS_chunks = [chk for chk in doc.chunks if (re.search("TimeSIFT", chk.label) is None)]
     TS_chunks = [chk for chk in TS_chunks if chk.enabled]
-    TS_chunk_names=[chk.label for chk in TS_chunks]
+
     for chk in TS_chunks:
         start_time = time.time()
         NewChunk=chk
@@ -207,13 +209,15 @@ def process_splited_TimeSIFT_chunks_one_by_one(doc, out_dir_ortho = None, out_di
         proj = scan.OrthoProjection()
         proj.type=scan.OrthoProjection.Type.Planar
         proj.crs=scan.CoordinateSystem(crs)
-        img_compress=scan.ImageCompression(tiff_compression = scan.ImageCompression.TiffCompressionLZW, tiff_big= True)
+        img_compress=scan.ImageCompression(tiff_compression = scan.ImageCompression.TiffCompressionLZW, tiff_big = True)
         img_compress.tiff_big = True            #apparently necessary, maybe because of ImageCompression init that doesn't deal with bigTiff ?
         doc.save(os.path.join(out_dir_ortho, '_temp_.psx'))
+
         try :
             NewChunk.exportRaster(os.path.join(out_dir_ortho, f"{str(NewChunk.label)}{site_name}_ORTHO.tif"),source_data=scan.OrthomosaicData, image_format=scan.ImageFormatTIFF,
                                 projection=proj, resolution=resol_ref,clip_to_boundary=True,save_alpha=False, split_in_blocks = False, image_compression = img_compress)
-        #if the raster file is too big and bigTiff doesn't work for some reason, it will be divided into blocks
+            
+        # if the raster file is too big and bigTiff doesn't work for some reason, it will be divided into 10000*10000 blocks
         except:
             os.remove(os.path.join(out_dir_ortho, f"{str(NewChunk.label)}{site_name}_ORTHO.tif"))
             NewChunk.exportRaster(os.path.join(out_dir_ortho, f"{str(NewChunk.label)}{site_name}_ORTHO.tif"),source_data=scan.OrthomosaicData, image_format=scan.ImageFormatTIFF,
@@ -331,8 +335,8 @@ def Time_SIFT_process(pathDIR,
             os.mkdir(out_dir_project)
         doc.save(os.path.join(out_dir_project, f"Metashape_Project_{site_name}.psx"))
         
-    #os.remove(os.path.join(out_dir_ortho, '_temp_.psx'))
-    #shutil.rmtree(os.path.join(out_dir_ortho, '_temp_.files'))
+    os.remove(os.path.join(out_dir_ortho, '_temp_.psx'))
+    shutil.rmtree(os.path.join(out_dir_ortho, '_temp_.files'))
     
 
 if __name__ == '__main__':
@@ -349,5 +353,6 @@ if __name__ == '__main__':
                       calibrate_col = args.calibrate_col,
                       sun_sensor = args.sun_sensor,
                       group_by_flight = args.group_by_flight,
-                      downscale_factor = args.downscale_factor,
+                      downscale_factor_alignement = args.downscale_factor_alignement,
+                      downscale_factor_depth_map = args.downscale_factor_depth_map
                       )
