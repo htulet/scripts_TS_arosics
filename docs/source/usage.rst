@@ -58,16 +58,18 @@ Write down your license key at the beginning of the script 'TimeSIFT_scripts_aut
 
 Generate orthomosaics from drone images using Time-SIFT and Metashape
 ---------------------------------------------------------------------
-- Structure your data in one of the following ways :
+- Structure your data in one of the following ways : either place one folder by flight directly in your input folder, or use one directory by date, each consisting of subdirectories for each flight. In both cases, the name of the folders directly containing images must start with their date in YYYYMMDD format (see exemples below).
+
 .. image:: _static/structure1.png
    :alt: Data structure 1
-   :width: 400px
+   :width: 150px
    :align: left
 
 .. image:: _static/structure2.png
    :alt: Data structure 2
-   :width: 400px
-   :align: right
+   :width: 200px
+   :align: center
+
 
 - You can then use the ``Time_SIFT_process()`` function
 

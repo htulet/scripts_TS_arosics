@@ -59,17 +59,20 @@ def add_all_chunks(doc, pathDIR=None):
     for (dirpath, dirnames, filenames) in os.walk(pathDIR):
         list_files += [os.path.join(dirpath, file) for file in filenames]
     
-    epochs = [os.path.basename(dir_path) for dir_path in np.unique([os.path.dirname(file) for file in list_files])]
-    #epochs = [ep for ep in epochs if not os.path.isfile(ep) and os.listdir(ep)]
+    ep_relative_paths = np.unique([os.path.relpath(os.path.dirname(file)) for file in list_files])
+    print("ep paths : ", ep_relative_paths)
+    epochs = [os.path.basename(dir_path) for dir_path in ep_relative_paths]
+    print("epochs : ", epochs)
     
     # We remove all existing chunks and add them one by one
     for chk in doc.chunks:
         doc.remove(chk)
-    for ep in epochs: 
-        add_TimeSIFT_chunk(doc, epoch_name=ep)
+    for i in range(len(ep_relative_paths)):
+        ep_name, ep_path = epochs[i], ep_relative_paths[i]
+        add_TimeSIFT_chunk(doc, ep_path = ep_path, epoch_name = ep_name)
 
 
-def add_TimeSIFT_chunk(doc, epoch_name=""):
+def add_TimeSIFT_chunk(doc, ep_path="", epoch_name=""):
     """
     Adds a single RGB chunk to the project
     """
@@ -77,8 +80,8 @@ def add_TimeSIFT_chunk(doc, epoch_name=""):
         doc.addChunk()
         chunk=doc.chunks[len(doc.chunks)-1]
         chunk.label=epoch_name
-        [f for f in os.listdir(epoch_name) if os.path.isfile(os.path.join(epoch_name, f))]
-        dirName=epoch_name
+        [f for f in os.listdir(ep_path) if os.path.isfile(os.path.join(ep_path, f))]
+        dirName=ep_path
         listOfFiles = list()
         for (dirpath, dirnames, filenames) in os.walk(dirName):
             listOfFiles += [os.path.join(dirpath, file) for file in filenames]

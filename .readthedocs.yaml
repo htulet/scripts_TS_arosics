@@ -20,6 +20,6 @@ sphinx:
   # fail_on_warning: true
 
 
-#python:
-  #install:
-     #- requirements: requirements.txt
+python:
+  install:
+     - requirements: requirements.txt
