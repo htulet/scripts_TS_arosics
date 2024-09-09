@@ -307,7 +307,7 @@ def Time_SIFT_process(pathDIR,
     doc.save(os.path.join(out_dir_ortho, '_temp_.psx'))
 
     #Color calibration
-    if calibrate_col and (data_type=='RGB' or 'MS'):
+    if calibrate_col and (data_type=='RGB' or data_type=='MS'):
         TS_chunk = [chk for chk in doc.chunks if (re.search("TimeSIFT", chk.label) is not None)][0]
         TS_chunk.calibrateColors(scan.TiePointsData, white_balance=True)
     
