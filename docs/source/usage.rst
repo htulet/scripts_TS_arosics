@@ -58,15 +58,25 @@ Write down your license key at the beginning of the script 'TimeSIFT_scripts_aut
 
 Generate orthomosaics from drone images using Time-SIFT and Metashape
 ---------------------------------------------------------------------
+- Structure your data in one of the following ways :
+.. image:: _static/structure1.png
+   :alt: Data structure 1
+   :width: 400px
+   :align: left
 
-You can use the ``Time_SIFT_process()`` function
+.. image:: _static/structure2.png
+   :alt: Data structure 2
+   :width: 400px
+   :align: right
+
+- You can then use the ``Time_SIFT_process()`` function
 
 .. autofunction:: TimeSIFT_scripts_auto.Time_SIFT_process
 
 Align two or more images together using arosics
 -----------------------------------------------
 
-You can use the ``arosics_chain.complete_arosics_process()`` function
+Use the ``arosics_chain.complete_arosics_process()`` function
 
 .. autofunction:: arosics_chain.complete_arosics_process
 

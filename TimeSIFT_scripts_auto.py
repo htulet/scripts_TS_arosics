@@ -1,6 +1,5 @@
-# This script is based on the  :
-#
-# D. Feurer, F. Vinatier, Joining multi-epoch archival aerial images in a single SfM block allows 3-D change detection with almost exclusively image information, ISPRS Journal of Photogrammetry and Remote Sensing, Volume 146, 2018, Pages 495-506, ISSN 0924-2716, https://doi.org/10.1016/j.isprsjprs.2018.10.016. (http://www.sciencedirect.com/science/article/pii/S0924271618302946)
+# This script is based on the following work :
+# Fabrice Vinatier, & Denis Feurer. (2023). Time-SIFT module for Agisoft Metashape software. Zenodo. https://doi.org/10.5281/zenodo.8359983
 # The code of the original plugin is available using the following DOI : 10.5281/zenodo.8359982
 
 
@@ -55,8 +54,14 @@ def add_all_chunks(doc, pathDIR=None):
     print(pathDIR)
     os.chdir(pathDIR)
     epochs = os.listdir(pathDIR)
-    # we select only the non-empty subfolders 
-    epochs = [ep for ep in epochs if not os.path.isfile(ep) and os.listdir(ep)]
+    # we select only the non-empty subfolders
+    list_files = [] 
+    for (dirpath, dirnames, filenames) in os.walk(pathDIR):
+        list_files += [os.path.join(dirpath, file) for file in filenames]
+    
+    epochs = [os.path.basename(dir_path) for dir_path in np.unique([os.path.dirname(file) for file in list_files])]
+    #epochs = [ep for ep in epochs if not os.path.isfile(ep) and os.listdir(ep)]
+    
     # We remove all existing chunks and add them one by one
     for chk in doc.chunks:
         doc.remove(chk)
@@ -311,7 +316,7 @@ def Time_SIFT_process(pathDIR,
     doc.save(os.path.join(out_dir_ortho, '_temp_.psx'))
 
     #Color calibration
-    if calibrate_col and (data_type=='RGB' or 'MS'):
+    if calibrate_col and (data_type=='RGB' or data_type=='MS'):
         TS_chunk = [chk for chk in doc.chunks if (re.search("TimeSIFT", chk.label) is not None)][0]
         TS_chunk.calibrateColors(scan.TiePointsData, white_balance=True)
     
