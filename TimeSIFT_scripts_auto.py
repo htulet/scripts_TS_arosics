@@ -59,7 +59,7 @@ def add_all_chunks(doc, pathDIR=None):
     for (dirpath, dirnames, filenames) in os.walk(pathDIR):
         list_files += [os.path.join(dirpath, file) for file in filenames]
     
-    ep_relative_paths = np.unique([os.path.relpath(os.path.dirname(file)) for file in list_files])
+    ep_relative_paths = np.unique([os.path.relpath(os.path.dirname(file), start=pathDIR) for file in list_files])
     print("ep paths : ", ep_relative_paths)
     epochs = [os.path.basename(dir_path) for dir_path in ep_relative_paths]
     print("epochs : ", epochs)
@@ -149,7 +149,9 @@ def split_TimeSIFT_chunk(doc, group_by_flight = False):
     if group_by_flight:
         TS_chunk_names=np.unique([cam.label.split("_EPOCH_")[0] for cam in TS_chunk.cameras])
     else:
-        TS_chunk_names=np.unique([re.search(r'\d+', cam.label).group() for cam in TS_chunk.cameras])
+        #searching for a date in YYYYMMDD or YYYYMM format in cameras_names to do the slpit
+        pattern = r'\d{4}(0[1-9]|1[0-2])([0-2][0-9]|3[01])?'
+        TS_chunk_names=np.unique([re.search(pattern, cam.label).group() if re.search(pattern, cam.label) else cam.label for cam in TS_chunk.cameras])              #r'\d+'
     print(TS_chunk_names)
     for chk_name in TS_chunk_names:
         if len([chk for chk in doc.chunks if re.search(chk_name,chk.label) is not None])==0:
@@ -255,7 +257,7 @@ def Time_SIFT_process(pathDIR,
     Executes the complete Time_SIFT process, calling all the other functions. The input folder should be containing subfolders named after each of the flights, that themselves contain all the photos. All these photos will then be merged, aligned,
     then orthomosaic and (optionally) DEMs will be generated for each date (or for each flight)
 
-    :param str pathDIR: Path to the folder where the data is located. Inside this folder, there should be one subfolder per flight, with the date of the flight specified in the folder name, preferably at the beginning in the YYYYMMDD format.
+    :param str pathDIR: Path to the folder where the data is located. Inside this folder, there should be one subfolder per flight, with the date of the flight specified in the folder name in the YYYYMMDD or YYYYMM format.
     :param str out_dir_ortho: Folder where the orthomosaics are saved.
     :param str out_dir_DEM: Folder where the DEMs are saved. If no path is specified, the DEMs are not saved by default.
     :param str out_dir_project: Folder where the Metashape project is saved. If no path is specified, the project is not saved by default.
