@@ -17,20 +17,20 @@ from shapely.geometry import Polygon
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--path_in')
-parser.add_argument('--ref_filepath')
-parser.add_argument('--out_dir_path')
-parser.add_argument('--corr_type', default='global')
-parser.add_argument('--dynamic_corr', default=False)
+parser.add_argument('--path_in', type=str)
+parser.add_argument('--ref_filepath', type=str)
+parser.add_argument('--out_dir_path', type=str)
+parser.add_argument('--corr_type', type=str, default='global')
+parser.add_argument('--dynamic_corr', type=bool, default=False)
 parser.add_argument('--mp', default=1)
-parser.add_argument('--max_shift', default=250)
-parser.add_argument('--max_iter', default=100)
+parser.add_argument('--max_shift', type=int, default=250)
+parser.add_argument('--max_iter', type=int, default=100)
 parser.add_argument('--ws', default=None)
 parser.add_argument('--wp', default=(None, None))
-parser.add_argument('--grid_res', default=1000)
-parser.add_argument('--apply_matrix', default=False)
-parser.add_argument('--save_plot', default=False)
-parser.add_argument('--save_data', default=True)
+parser.add_argument('--grid_res', type=int, default=1000)
+parser.add_argument('--apply_matrix', type=bool, default=False)
+parser.add_argument('--save_plot', type=bool, default=False)
+parser.add_argument('--save_data', type=bool, default=True)
 args = parser.parse_args()
 
 
@@ -64,9 +64,20 @@ def harmonize_crs(input_path, ref_path, check_ref=True):
     check_ref (bool, optional):  
         If True (default), perform an additional safety measure by rewriting the crs of the reference image aswell. May prevent errors if both files have their crs defined from different libraries (rasterio.CRS and pyproj.CRS)
     """
+    ref_compr = True
+    input_compr = True
+
     with rasterio.open(ref_path) as ds_ref:
         metadata_ref = ds_ref.meta.copy()
         crs_ref = metadata_ref['crs']
+
+        if ds_ref.profile.get('compress', 'Uncompressed')!='lzw':
+            ref_compr = False
+            metadata_ref.update(compress='lzw', bigtiff=True)
+            print(f"Reference image {ref_path} will be compressed")
+        else:
+            print(f"No compression needed for reference image : {ref_path}")
+        
         with rasterio.open(input_path) as ds_in:
             img_in = ds_in.read()
             metadata_in = ds_in.meta.copy()
@@ -74,8 +85,18 @@ def harmonize_crs(input_path, ref_path, check_ref=True):
             print("harmonization needed : ", correction_needed)
             if correction_needed:
                 metadata_in['crs'] = crs_ref
-            ds_in.close()  
-        if check_ref and correction_needed:
+            
+            if ds_in.profile.get('compress', 'Uncompressed')!='lzw':
+                input_compr = False
+                metadata_in.update(compress='lzw', bigtiff=True)
+                print(f"Input image {input_path} will be compressed")
+            else:
+                print(f"No compression needed for input image : {input_path}")
+
+            ds_in.close() 
+
+
+        if check_ref and (correction_needed or not ref_compr):
             metadata_ref['crs'] = crs_ref
             img_ref = ds_ref.read()
             ds_ref.close()
@@ -83,7 +104,7 @@ def harmonize_crs(input_path, ref_path, check_ref=True):
                 ds_ref_out.write(img_ref)
                 ds_ref_out.close()     
         ds_ref.close()
-    if correction_needed:
+    if correction_needed or not input_compr:
         with rasterio.open(input_path, "w", **metadata_in) as ds_out:
             ds_out.write(img_in)
             ds_out.close()

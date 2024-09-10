@@ -16,18 +16,18 @@ import shutil
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--crs')
-parser.add_argument('--pathDIR')
-parser.add_argument('--out_dir_ortho')
-parser.add_argument('--out_dir_dem', default = None)
-parser.add_argument('--out_dir_project', default = None)
-parser.add_argument('--resol_ref', default = 0.05)
-parser.add_argument('--data_type', default = 'RGB')
-parser.add_argument('--site_name', default = '')
-parser.add_argument('--calibrate_col', default = True)
-parser.add_argument('--sun_sensor', default = False)
-parser.add_argument('--group_by_flight', default = False)
-parser.add_argument('--downscale_factor_alignement', default = 1)
-parser.add_argument('--downscale_factor_depth_map', default = 2)
+parser.add_argument('--pathDIR', type=str)
+parser.add_argument('--out_dir_ortho', type=str)
+parser.add_argument('--out_dir_dem', type=str, default = None,)
+parser.add_argument('--out_dir_project', type=str, default = None)
+parser.add_argument('--resol_ref', type=float, default = 0.05)
+parser.add_argument('--data_type', type=str, default = 'RGB')
+parser.add_argument('--site_name', type=str, default = '')
+parser.add_argument('--calibrate_col', type=bool, default = True)
+parser.add_argument('--sun_sensor', type=bool, default = False)
+parser.add_argument('--group_by_flight', type=bool, default = False)
+parser.add_argument('--downscale_factor_alignement', type=int, default = 1)
+parser.add_argument('--downscale_factor_depth_map', type=int, default = 2)
 args = parser.parse_args()
 
 
@@ -274,7 +274,6 @@ def Time_SIFT_process(pathDIR,
     :return: None
     """
     doc = scan.Document()
-
     assert data_type in ["RGB", "MS"]
     #for file naming purposes
     if site_name != "":

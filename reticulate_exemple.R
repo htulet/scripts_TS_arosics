@@ -9,14 +9,10 @@ source_python(init_path)
 
 
 
-Time_SIFT_process(pathDIR="Y:/RGB/EPOCHS",
+Time_SIFT_process(pathDIR='Z:/users/HadrienTulet/data_pipe',
                      data_type='RGB',
-                     resol_ref=0.05, 
-                     crs="EPSG::32622", 
-                     site_name = "",
-                     out_dir_ortho = "Z:/shared/PhenOBS/Paracou/Metashape/RGB_Broad_Mosaics/Test_sensibilite/matin/ORTHO",
-                     out_dir_DEM = "Z:/shared/PhenOBS/Paracou/Metashape/RGB_Broad_Mosaics/Test_sensibilite/matin/DEM",
-                     calibrate_col = 'True')
+                     out_dir_ortho = 'Z:/users/HadrienTulet/data_pipeline/ORTHO',
+                     calibrate_col = True)
                      #out_dir_project = 'None',
               
 
