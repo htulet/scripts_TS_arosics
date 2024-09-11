@@ -36,7 +36,7 @@ Then, run the following command
 R Environment and how to link it to python (Optionnal)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If you want to execute the code from an R IDE, you will need to link the R environment you use to the python environment you just created. 
-Fist, install the reticulate package in your R environment using the Rstudio console
+First, install the reticulate package in your R environment using the Rstudio console
 
 .. code-block:: console
 
@@ -60,6 +60,8 @@ Generate orthomosaics from drone images using Time-SIFT and Metashape
 ---------------------------------------------------------------------
 - Structure your data in one of the following ways : either place one folder by flight directly in your input folder, or use one directory by date, each consisting of subdirectories for each flight (see exemples below). In both cases, the date must be indicated in the name of the folders directly containing images, in the YYYYMMDD or YYYYMM formats.
 
+Accepted folder structures
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. image:: _static/structure1.png
    :alt: Data structure 1
    :width: 150px

@@ -254,8 +254,8 @@ def Time_SIFT_process(pathDIR,
                       downscale_factor_depth_map = 2,
                       ):
     """
-    Executes the complete Time_SIFT process, calling all the other functions. The input folder should be containing subfolders named after each of the flights, that themselves contain all the photos. All these photos will then be merged, aligned,
-    then orthomosaic and (optionally) DEMs will be generated for each date (or for each flight)
+    Executes the complete Time_SIFT process : Loads all photos from the input folder and its subdirectories into a Metashape project . These photos will then be merged, aligned,
+    before the orthomosaic and (optionally) DEMs will be generated for each date (or for each flight)
 
     :param str pathDIR: Path to the folder where the data is located. Inside this folder, there should be one subfolder per flight, with the date of the flight specified in the folder name in the YYYYMMDD or YYYYMM format.
     :param str out_dir_ortho: Folder where the orthomosaics are saved.

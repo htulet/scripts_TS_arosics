@@ -31,6 +31,7 @@ parser.add_argument('--grid_res', type=int, default=1000)
 parser.add_argument('--apply_matrix', type=bool, default=False)
 parser.add_argument('--save_plot', type=bool, default=False)
 parser.add_argument('--save_data', type=bool, default=True)
+parser.add_argument('--compress_lzw', type=bool, default=False)
 args = parser.parse_args()
 
 
@@ -52,9 +53,9 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
-def harmonize_crs(input_path, ref_path, check_ref=True):
+def harmonize_crs(input_path, ref_path, check_ref=True, compress_lzw=False):
     """
-    Forces two raster files to have the same coordinate system : takes the crs of the reference file and writes it into the input file
+    Forces two raster files to have the same coordinate system : takes the crs of the reference file and writes it into the input file. Also optionnally perform a LZW compression on the image(s)
 
     Parameters:
     input file (str): 
@@ -63,20 +64,23 @@ def harmonize_crs(input_path, ref_path, check_ref=True):
         Path to the second image (reference)
     check_ref (bool, optional):  
         If True (default), perform an additional safety measure by rewriting the crs of the reference image aswell. May prevent errors if both files have their crs defined from different libraries (rasterio.CRS and pyproj.CRS)
+    compress_lzw (bool, optional):  
+        If True (default), perform a lzw compression on the image(s)
     """
-    ref_compr = True
-    input_compr = True
+    ref_compr = compress_lzw
+    input_compr = compress_lzw
 
     with rasterio.open(ref_path) as ds_ref:
         metadata_ref = ds_ref.meta.copy()
         crs_ref = metadata_ref['crs']
 
-        if ds_ref.profile.get('compress', 'Uncompressed')!='lzw':
-            ref_compr = False
-            metadata_ref.update(compress='lzw', bigtiff=True)
-            print(f"Reference image {ref_path} will be compressed")
-        else:
-            print(f"No compression needed for reference image : {ref_path}")
+        if compress_lzw:
+            if ds_ref.profile.get('compress', 'Uncompressed')!='lzw':
+                ref_compr = False
+                metadata_ref.update(compress='lzw', bigtiff=True)
+                print(f"Reference image {ref_path} will be compressed")
+            else:
+                print(f"No compression needed for reference image : {ref_path}")
         
         with rasterio.open(input_path) as ds_in:
             img_in = ds_in.read()
@@ -86,12 +90,13 @@ def harmonize_crs(input_path, ref_path, check_ref=True):
             if correction_needed:
                 metadata_in['crs'] = crs_ref
             
-            if ds_in.profile.get('compress', 'Uncompressed')!='lzw':
-                input_compr = False
-                metadata_in.update(compress='lzw', bigtiff=True)
-                print(f"Input image {input_path} will be compressed")
-            else:
-                print(f"No compression needed for input image : {input_path}")
+            if compress_lzw:
+                if ds_in.profile.get('compress', 'Uncompressed')!='lzw':
+                    input_compr = False
+                    metadata_in.update(compress='lzw', bigtiff=True)
+                    print(f"Input image {input_path} will be compressed")
+                else:
+                    print(f"No compression needed for input image : {input_path}")
 
             ds_in.close() 
 
@@ -270,7 +275,7 @@ def call_arosics(path_in, path_ref, path_out=None, corr_type = 'global', max_shi
     return CR
 
         
-def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'global', max_shift=250, max_iter=100, grid_res=1000, window_size=None, window_pos = (None, None), mp=None, save_data = True, save_vector_plot = False, dynamic_corr = False, apply_matrix=False):
+def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'global', max_shift=250, max_iter=100, grid_res=1000, window_size=None, window_pos = (None, None), mp=None, compress_lzw=False, save_data = True, save_vector_plot = False, dynamic_corr = False, apply_matrix=False):
     """
     Complete pipeline that uses arosics to perform a global or local co-registration on a file or a group of files located inside a folder. In the case of a local CoReg, option to save the tie points data and the vector shift map.
 
@@ -284,7 +289,8 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
     :param int window_size: Custom matching window size [pixels] as (X, Y) tuple (default: (256,256)).
     :param tuple window_pos: Custom matching window position as (X, Y) map coordinate in the same projection as the reference image (default: central position of image overlap). Only used when performing global co-registration.
     :param int mp: Number of CPUs to use. If None (default), all available CPUs are used. If mp=1, no multiprocessing is done.
-    :param bool save_csv: If True (default), saves the transformation metadata in a .pkl file, and the tie points data in a csv file. The latter only happens when performing local co-registration
+    :param bool compress_lzw:  If True (default), perform a lzw compression on the image(s)
+    :param bool save_data: If True (default), saves the transformation metadata in a .pkl file, and the tie points data in a csv file. The latter only happens when performing local co-registration
     :param bool save_vector_plot: If True (default), saves the a map of the calculated tie point grid in a JPEG file. Has an effect only when performing local co-registration.
     :param bool dynamic_corr: When correcting multiple images, whether or not to use the last corrected image as reference for the next co-registration.
         If False (default), all images are corrected using 'ref_filepath' as the reference image.
@@ -302,6 +308,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
     apply_matrix = str2bool(apply_matrix)
     save_vector_plot = str2bool(save_vector_plot)
     save_data = str2bool(save_data)
+    compress_lzw = str2bool(compress_lzw)
     mp = mp if mp is None else int(mp)
     grid_res = int(grid_res)
     window_size = window_size if window_size is None else int(window_size)
@@ -325,7 +332,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
         if not path_in.endswith(extensions):
             raise ValueError(f"The specified file '{path_in}' must be of GeoTiff format")
         else:
-            harmonize_crs(path_in, ref_filepath)
+            harmonize_crs(path_in, ref_filepath, compress_lzw=compress_lzw)
             path_out = os.path.join(out_dir_path, path_in.split('/')[-1].split('\\')[-1].split('.')[0] + f'_aligned_{corr_type}.tif')
             CR = call_arosics(path_in, ref_filepath, path_out=path_out, corr_type=corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_data=save_data)
             return CR
@@ -342,7 +349,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
             for i in range(len(files)):
                 file = files[i]
                 current_file_path = os.path.join(path_in, file)
-                harmonize_crs(current_file_path, ref_filepath, check_ref = True if i==0 else False)
+                harmonize_crs(current_file_path, ref_filepath, check_ref = True if i==0 else False, compress_lzw=compress_lzw)
                 path_out = os.path.join(out_dir_path, file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
                 CR = call_arosics(current_file_path, ref_filepath, path_out=path_out, corr_type=corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_data=save_data)
                 list_CR.append(CR)
@@ -403,13 +410,13 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
                         dst.close()
 
             first_file = files[0]
-            harmonize_crs(os.path.join(path_in, first_file), ref_filepath)
+            harmonize_crs(os.path.join(path_in, first_file), ref_filepath, compress_lzw=compress_lzw)
             path_out = os.path.join(out_dir_path, first_file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
             CR = call_arosics(os.path.join(path_in, first_file), ref_filepath, path_out=path_out, corr_type=corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_data=save_data)             
             list_CR.append(CR)
             for file in files[1:]:
                 current_file_path = os.path.join(path_in, file)
-                harmonize_crs(current_file_path, ref_filepath, check_ref=False)
+                harmonize_crs(current_file_path, ref_filepath, check_ref=False, compress_lzw=compress_lzw)
                 path_out = os.path.join(out_dir_path, file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
                 CR = DESHIFTER(current_file_path, CR.coreg_info, path_out=path_out, fmt_out="GTIFF")
                 CR.correct_shifts() 
@@ -439,5 +446,6 @@ if __name__ == '__main__':
                              dynamic_corr = args.dynamic_corr,
                              apply_matrix = args.apply_matrix,
                              save_data = args.save_data,
-                             save_vector_plot = args.save_plot
+                             save_vector_plot = args.save_plot,
+                             compress_lzw = args.compress_lzw,
                              )
