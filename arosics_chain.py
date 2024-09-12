@@ -14,7 +14,7 @@ import warnings
 from osgeo import gdal
 import pickle
 from shapely.geometry import Polygon
-
+import multiprocessing
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--path_in', type=str)
@@ -51,6 +51,23 @@ def str2bool(v):
         return bool(v)
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
+
+def compress_LZW(file_path):
+    with rasterio.open(file_path) as src:
+        
+        meta = src.meta.copy()
+        if src.profile.get('compress', 'Uncompressed')!='lzw':
+            print(f"Image {file_path} is being compressed")
+            # Update the metadata to use LZW compression
+            meta.update(compress='lzw', bigtiff=True)
+            im = src.read()
+            src.close()
+            # Write the data to a new file with LZW compression
+            with rasterio.open(file_path, 'w', **meta) as dst:
+                dst.write(im)
+
+        else:
+            print(f"No compression needed for image : {file_path}")
 
 
 def harmonize_crs(input_path, ref_path, check_ref=True, compress_lzw=False):
@@ -272,6 +289,7 @@ def call_arosics(path_in, path_ref, path_out=None, corr_type = 'global', max_shi
             DPI=300
             vector_scale=15
             CR.view_CoRegPoints(shapes2plot = 'vectors', savefigPath = path_out.split('.')[0] + f"_vector_map_{DPI}DPI.JPEG", savefigDPI=DPI, vector_scale=vector_scale, backgroundIm='tgt')
+        #compress_LZW(path_out)
     return CR
 
         
@@ -338,7 +356,6 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
             return CR
             
     elif os.path.isdir(path_in):
-        list_CR = []
         files = [file for file in sorted(os.listdir(path_in)) if file.endswith(extensions)]
         print("files : ", files)
 
@@ -351,8 +368,17 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
                 current_file_path = os.path.join(path_in, file)
                 harmonize_crs(current_file_path, ref_filepath, check_ref = True if i==0 else False, compress_lzw=compress_lzw)
                 path_out = os.path.join(out_dir_path, file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
-                CR = call_arosics(current_file_path, ref_filepath, path_out=path_out, corr_type=corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_data=save_data)
-                list_CR.append(CR)
+                process = multiprocessing.Process(target=call_arosics, args=[current_file_path, ref_filepath, path_out, corr_type, max_shift, max_iter, window_size, window_pos, mp, grid_res, save_data, save_vector_plot])
+                process.start()
+                process.join(timeout=36000)     # timeout = 10 hours
+                # Terminate the process if needed (ensure cleanup)
+                if process.is_alive():
+                    process.terminate() 
+                    raise TimeoutError("The arosics process is taking too much time and has been terminated")
+                else:
+                    process.terminate()
+                    print("Process terminated successfully")
+
                 if dynamic_corr:
                     ref_filepath = path_out
                 
@@ -412,20 +438,28 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
             first_file = files[0]
             harmonize_crs(os.path.join(path_in, first_file), ref_filepath, compress_lzw=compress_lzw)
             path_out = os.path.join(out_dir_path, first_file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
-            CR = call_arosics(os.path.join(path_in, first_file), ref_filepath, path_out=path_out, corr_type=corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_data=save_data)             
-            list_CR.append(CR)
+            CR = call_arosics(os.path.join(path_in, first_file), ref_filepath, path_out=path_out, corr_type=corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_data=save_data)
+            process = multiprocessing.Process(target=call_arosics, args=[os.path.join(path_in, first_file), ref_filepath, path_out, corr_type, max_shift, max_iter, window_size, window_pos, mp, grid_res, save_data, save_vector_plot])
+            process.start()
+            process.join(timeout=36000)     # timeout = 10 hours
+            # Terminate the process if needed (ensure cleanup)
+            if process.is_alive():
+                process.terminate() 
+                raise TimeoutError("The arosics process is taking too much time and has been terminated")
+            else:
+                process.terminate()
+                print("Process terminated successfully")
+            
             for file in files[1:]:
                 current_file_path = os.path.join(path_in, file)
                 harmonize_crs(current_file_path, ref_filepath, check_ref=False, compress_lzw=compress_lzw)
                 path_out = os.path.join(out_dir_path, file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
                 CR = DESHIFTER(current_file_path, CR.coreg_info, path_out=path_out, fmt_out="GTIFF")
                 CR.correct_shifts() 
-                list_CR.append(CR)
         if rm_temp_files:
             for file in files:
                 os.remove(os.path.join(path_in, file))
         
-        return list_CR
     
     else:
         raise ValueError(f"The specified path '{path_in}' is not a file nor a directory.")
