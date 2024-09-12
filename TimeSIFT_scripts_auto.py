@@ -2,7 +2,7 @@
 # Fabrice Vinatier, & Denis Feurer. (2023). Time-SIFT module for Agisoft Metashape software. Zenodo. https://doi.org/10.5281/zenodo.8359983
 # The code of the original plugin is available using the following DOI : 10.5281/zenodo.8359982
 
-
+"""
 import os
 from os import path
 import re
@@ -29,7 +29,7 @@ parser.add_argument('--group_by_flight', type=bool, default = False)
 parser.add_argument('--downscale_factor_alignement', type=int, default = 1)
 parser.add_argument('--downscale_factor_depth_map', type=int, default = 2)
 args = parser.parse_args()
-
+"""
 
 def str2bool(v):
     """
@@ -347,7 +347,7 @@ def Time_SIFT_process(pathDIR,
     os.remove(os.path.join(out_dir_ortho, '_temp_.psx'))
     shutil.rmtree(os.path.join(out_dir_ortho, '_temp_.files'))
     
-
+"""
 if __name__ == '__main__':
 
     print("args : ", args)
@@ -365,3 +365,4 @@ if __name__ == '__main__':
                       downscale_factor_alignement = args.downscale_factor_alignement,
                       downscale_factor_depth_map = args.downscale_factor_depth_map
                       )
+"""
