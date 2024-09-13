@@ -23,10 +23,10 @@ parser.add_argument('--max_iter', type=int, default=100)
 parser.add_argument('--ws', default=None)
 parser.add_argument('--wp', default=(None, None))
 parser.add_argument('--grid_res', type=int, default=1000)
-parser.add_argument('--apply_matrix', type=bool, default=False)
-parser.add_argument('--save_plot', type=bool, default=False)
-parser.add_argument('--save_data', type=bool, default=True)
-parser.add_argument('--compress_lzw', type=bool, default=False)
+parser.add_argument('--apply_matrix', default=False)
+parser.add_argument('--save_plot', default=False)
+parser.add_argument('--save_data', default=True)
+parser.add_argument('--compress_lzw', default=False)
 args = parser.parse_args()
 
 
@@ -219,7 +219,7 @@ def apply_saved_matrix(im_path, out_dir_path, metadata_path, GCP_path = None):
 
 
 
-def call_arosics(queue, path_in, path_ref, path_out=None, corr_type = 'global', max_shift=250, max_iter=100, window_size=1500, window_pos = (None, None), mp=None, grid_res=1000, save_data = True, save_vector_plot = False):
+def call_arosics(path_in, path_ref, path_out=None, corr_type = 'global', max_shift=250, max_iter=100, window_size=1500, window_pos = (None, None), mp=None, grid_res=1000, save_data = True, save_vector_plot = False, queue=None):
     """
     Calls arosics functions to perform a global or local co-registration between two images. Option to save the coregistrated image, and in the case of a local CoReg, the tie points data and the vector shift map.
 
@@ -285,8 +285,10 @@ def call_arosics(queue, path_in, path_ref, path_out=None, corr_type = 'global', 
             vector_scale=15
             CR.view_CoRegPoints(shapes2plot = 'vectors', savefigPath = path_out.split('.')[0] + f"_vector_map_{DPI}DPI.JPEG", savefigDPI=DPI, vector_scale=vector_scale, backgroundIm='tgt')
         #compress_LZW(path_out)
-    queue.put(CR)
-    return CR
+    if queue:
+        queue.put(CR)
+    else:
+        return CR
 
         
 def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'global', max_shift=250, max_iter=100, grid_res=1000, window_size=None, window_pos = (None, None), mp=None, compress_lzw=False, save_data = True, save_vector_plot = False, dynamic_corr = False, apply_matrix=False):
@@ -366,9 +368,9 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
                 harmonize_crs(current_file_path, ref_filepath, check_ref = True if i==0 else False, compress_lzw=compress_lzw)
                 path_out = os.path.join(out_dir_path, file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
                 queue = multiprocessing.Queue()
-                process = multiprocessing.Process(target=call_arosics, args=(queue, current_file_path, ref_filepath, path_out, corr_type, max_shift, max_iter, window_size, window_pos, mp, grid_res, save_data, save_vector_plot))
+                process = multiprocessing.Process(target=call_arosics, args=(current_file_path, ref_filepath, path_out, corr_type, max_shift, max_iter, window_size, window_pos, mp, grid_res, save_data, save_vector_plot, queue))
                 process.start()
-                process.join(timeout=36000)     # timeout = 10 hours
+                process.join(timeout=2)     
                 # Terminate the process if needed (ensure cleanup)
                 CR = queue.get()
                 list_CR.append(CR)
@@ -400,8 +402,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
                 geom = Polygon([(mask_coords[0], mask_coords[1]), (mask_coords[0], mask_coords[3]), (mask_coords[2], mask_coords[3]), (mask_coords[2], mask_coords[1])])
                 num_cols = int(np.ceil((mask_coords[2]-mask_coords[0]) / tf[0]))
                 num_rows = int(np.ceil((mask_coords[1]-mask_coords[3]) / tf[4]))
-                print("num cols : ", num_cols)
-                print("num rows : ", num_rows)
+                print("mask dimensions : ", (num_cols, num_rows))
                 print("Mask : ", geom.bounds)
                 #All images are padded to fit the geometry of the mask
                 for i in range(len(files)) :
@@ -439,9 +440,9 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
             harmonize_crs(os.path.join(path_in, first_file), ref_filepath, compress_lzw=compress_lzw)
             path_out = os.path.join(out_dir_path, first_file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
             queue = multiprocessing.Queue()
-            process = multiprocessing.Process(target=call_arosics, args=(queue, current_file_path, ref_filepath, path_out, corr_type, max_shift, max_iter, window_size, window_pos, mp, grid_res, save_data, save_vector_plot))
+            process = multiprocessing.Process(target=call_arosics, args=(os.path.join(path_in, first_file), ref_filepath, path_out, corr_type, max_shift, max_iter, window_size, window_pos, mp, grid_res, save_data, save_vector_plot, queue))
             process.start()
-            process.join(timeout=36000)     # timeout = 10 hours
+            process.join(timeout=2)    
             # Terminate the process if needed (ensure cleanup)
             CR = queue.get()
             list_CR.append(CR)
@@ -470,7 +471,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
 
 
 if __name__ == '__main__':
-    
+    print(args)
     complete_arosics_process(path_in = args.path_in,
                              ref_filepath = args.ref_filepath, 
                              out_dir_path = args.out_dir_path, 

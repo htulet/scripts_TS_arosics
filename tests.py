@@ -430,7 +430,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
             path_out = os.path.join(out_dir_path, first_file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
             #CR = call_arosics(os.path.join(path_in, first_file), ref_filepath, path_out=path_out, corr_type=corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_data=save_data)
             queue = multiprocessing.Queue()
-            process = multiprocessing.Process(target=call_arosics, args=(queue, current_file_path, ref_filepath, path_out, corr_type, max_shift, max_iter, window_size, window_pos, mp, grid_res, save_data, save_vector_plot))
+            process = multiprocessing.Process(target=call_arosics, args=(queue, os.path.join(path_in, first_file), ref_filepath, path_out, corr_type, max_shift, max_iter, window_size, window_pos, mp, grid_res, save_data, save_vector_plot))
             process.start()
 
             process.join(timeout=36000)     # timeout = 10 hours

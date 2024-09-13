@@ -3,3 +3,4 @@ tests_vecteurs/*
 docs/build/*
 subprocess_test.py
 tests.ipynb
+tests.py
