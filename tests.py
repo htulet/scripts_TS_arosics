@@ -1,34 +1,20 @@
 import rasterio 
 import numpy as np
+from pyproj import CRS
+import sys
+import subprocess
 import argparse
 import os
 from arosics import COREG, COREG_LOCAL, DESHIFTER
+import rasterio.features as features
 from rasterio.windows import Window
+import time
 import pandas as pd
 import warnings
 from osgeo import gdal
 import pickle
 from shapely.geometry import Polygon
 import multiprocessing
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--path_in', type=str)
-parser.add_argument('--ref_filepath', type=str)
-parser.add_argument('--out_dir_path', type=str)
-parser.add_argument('--corr_type', type=str, default='global')
-parser.add_argument('--dynamic_corr', type=bool, default=False)
-parser.add_argument('--mp', default=1)
-parser.add_argument('--max_shift', type=int, default=250)
-parser.add_argument('--max_iter', type=int, default=100)
-parser.add_argument('--ws', default=None)
-parser.add_argument('--wp', default=(None, None))
-parser.add_argument('--grid_res', type=int, default=1000)
-parser.add_argument('--apply_matrix', type=bool, default=False)
-parser.add_argument('--save_plot', type=bool, default=False)
-parser.add_argument('--save_data', type=bool, default=True)
-parser.add_argument('--compress_lzw', type=bool, default=False)
-args = parser.parse_args()
-
 
 def str2bool(v):
     """
@@ -288,6 +274,10 @@ def call_arosics(queue, path_in, path_ref, path_out=None, corr_type = 'global', 
     queue.put(CR)
     return CR
 
+def somme(q, a, b):
+    c=a+b
+    q.put(c)
+    return c
         
 def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'global', max_shift=250, max_iter=100, grid_res=1000, window_size=None, window_pos = (None, None), mp=None, compress_lzw=False, save_data = True, save_vector_plot = False, dynamic_corr = False, apply_matrix=False):
     """
@@ -310,8 +300,8 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
         If False (default), all images are corrected using 'ref_filepath' as the reference image.
         If True, image 1 will use 'ref_filepath' as a reference, then image N (N>=2) will use the corrected version of image N-1 as reference.
     :param bool apply_matrix: When correcting multiple images, whether or not to directly apply the shifts computed for the first image to all the remaining ones, instead of computing the shifts for each one independently. Defaults to False.
-        Using this option allows faster computing time and better alignment between input images.
-        The time saved will decrease if the images have different bounds, as additionnal work is necessary to ensure a correct alignement. (Currently, temporary padded images are created in that case, we hope to change that soon)
+        !! Warning !! : Using this option allows faster computing time and better alignment between input images, but will create problems if those images have different bounds.
+        In this version, only the intersection of the input images is kept after coregistration.
                         
     :returns: A COREG object (if path_in is a file) or a list of COREG objects (if path_in is a folder) containing all info on the calculated shifts.
     """
@@ -363,11 +353,12 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
             for i in range(len(files)):
                 file = files[i]
                 current_file_path = os.path.join(path_in, file)
-                harmonize_crs(current_file_path, ref_filepath, check_ref = True if i==0 else False, compress_lzw=compress_lzw)
+                #harmonize_crs(current_file_path, ref_filepath, check_ref = True if i==0 else False, compress_lzw=compress_lzw)
                 path_out = os.path.join(out_dir_path, file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
                 queue = multiprocessing.Queue()
                 process = multiprocessing.Process(target=call_arosics, args=(queue, current_file_path, ref_filepath, path_out, corr_type, max_shift, max_iter, window_size, window_pos, mp, grid_res, save_data, save_vector_plot))
                 process.start()
+
                 process.join(timeout=36000)     # timeout = 10 hours
                 # Terminate the process if needed (ensure cleanup)
                 CR = queue.get()
@@ -400,8 +391,7 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
                 geom = Polygon([(mask_coords[0], mask_coords[1]), (mask_coords[0], mask_coords[3]), (mask_coords[2], mask_coords[3]), (mask_coords[2], mask_coords[1])])
                 num_cols = int(np.ceil((mask_coords[2]-mask_coords[0]) / tf[0]))
                 num_rows = int(np.ceil((mask_coords[1]-mask_coords[3]) / tf[4]))
-                print("num cols : ", num_cols)
-                print("num rows : ", num_rows)
+                print("mask dimensions : ", (num_cols, num_rows))
                 print("Mask : ", geom.bounds)
                 #All images are padded to fit the geometry of the mask
                 for i in range(len(files)) :
@@ -438,9 +428,11 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
             first_file = files[0]
             harmonize_crs(os.path.join(path_in, first_file), ref_filepath, compress_lzw=compress_lzw)
             path_out = os.path.join(out_dir_path, first_file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
+            #CR = call_arosics(os.path.join(path_in, first_file), ref_filepath, path_out=path_out, corr_type=corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_data=save_data)
             queue = multiprocessing.Queue()
             process = multiprocessing.Process(target=call_arosics, args=(queue, current_file_path, ref_filepath, path_out, corr_type, max_shift, max_iter, window_size, window_pos, mp, grid_res, save_data, save_vector_plot))
             process.start()
+
             process.join(timeout=36000)     # timeout = 10 hours
             # Terminate the process if needed (ensure cleanup)
             CR = queue.get()
@@ -462,28 +454,20 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
         if rm_temp_files:
             for file in files:
                 os.remove(os.path.join(path_in, file))
-        return CR
+        return list_CR
         
     
     else:
         raise ValueError(f"The specified path '{path_in}' is not a file nor a directory.")
-
+    
 
 if __name__ == '__main__':
-    
-    complete_arosics_process(path_in = args.path_in,
-                             ref_filepath = args.ref_filepath, 
-                             out_dir_path = args.out_dir_path, 
-                             corr_type = args.corr_type, 
-                             mp = args.mp,
-                             max_shift = args.max_shift,
-                             max_iter = args.max_iter,
-                             grid_res = args.grid_res,
-                             window_pos = args.wp,
-                             window_size = args.ws,
-                             dynamic_corr = args.dynamic_corr,
-                             apply_matrix = args.apply_matrix,
-                             save_data = args.save_data,
-                             save_vector_plot = args.save_plot,
-                             compress_lzw = args.compress_lzw,
-                             )
+    complete_arosics_process(path_in = "Z:/users/HadrienTulet/tests_arosics/data",
+                                ref_filepath = "D:/Phenologie/temp_folder/img_pres_pipeline/MNS50cm_Par2019.tif", 
+                                out_dir_path = "Z:/users/HadrienTulet/tests_arosics/data_out", 
+                                corr_type = 'global', 
+                                mp = 10,
+                                dynamic_corr = False,
+                                apply_matrix = False,
+                                save_data = False,
+                                )
