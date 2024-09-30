@@ -3,8 +3,6 @@
 # D. Feurer, F. Vinatier, Joining multi-epoch archival aerial images in a single SfM block allows 3-D change detection with almost exclusively image information, ISPRS Journal of Photogrammetry and Remote Sensing, Volume 146, 2018, Pages 495-506, ISSN 0924-2716, https://doi.org/10.1016/j.isprsjprs.2018.10.016. (http://www.sciencedirect.com/science/article/pii/S0924271618302946)
 
 
-
-
 import os
 from os import path
 import re
@@ -99,7 +97,7 @@ def merge_chunk_TimeSIFT(doc):
         doc.remove(chk_sel)
         for cam in [i for i in merged_chunk.cameras if re.search(chk_sel.label,i.label) is not None]:
             cam.transform = None
-    print("Temps écoulé pour la fusion : ", time.time() - start_time) 
+    print("Temps écoulé pour la fusion : ", time.time() - start_time)
 
 
 def align_TimeSIFT_chunk(doc, downscale_factor = 1):
@@ -309,7 +307,7 @@ def Time_SIFT_process(pathDIR,
     doc.save(os.path.join(out_dir_ortho, '_temp_.psx'))
 
     #Color calibration
-    if calibrate_col and (data_type=='RGB' or 'MS'):
+    if calibrate_col and (data_type=='RGB' or data_type=='MS'):
         TS_chunk = [chk for chk in doc.chunks if (re.search("TimeSIFT", chk.label) is not None)][0]
         TS_chunk.calibrateColors(scan.TiePointsData, white_balance=True)
     
