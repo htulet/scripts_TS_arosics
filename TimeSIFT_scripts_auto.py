@@ -351,5 +351,5 @@ if __name__ == '__main__':
                       calibrate_col = args.calibrate_col,
                       sun_sensor = args.sun_sensor,
                       group_by_flight = args.group_by_flight,
-                      downscale_factor = args.downscale_factor,
+                      downscale_factor_depth_map = args.downscale_factor,
                       )
