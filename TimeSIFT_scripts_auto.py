@@ -14,7 +14,7 @@ import shutil
 #scan.License().activate('your_license_key')
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--crs')
+parser.add_argument('--crs', type=str, default="EPSG::32622")
 parser.add_argument('--pathDIR', type=str)
 parser.add_argument('--out_dir_ortho', type=str)
 parser.add_argument('--out_dir_dem', type=str, default = None,)
