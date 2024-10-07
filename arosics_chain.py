@@ -462,13 +462,13 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
                 current_file_path = os.path.join(path_in, file)
                 harmonize_crs(current_file_path, ref_filepath, check_ref=False, compress_lzw=compress_lzw)
                 path_out = os.path.join(out_dir_path, file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
-                CR = DESHIFTER(current_file_path, CR.coreg_info, path_out=path_out, fmt_out="GTIFF")
-                CR.correct_shifts()
-                list_CR.append(CR)
+                DS = DESHIFTER(current_file_path, CR.coreg_info, path_out=path_out, fmt_out="GTIFF")
+                DS.correct_shifts()
+                list_CR.append(DS)
         if rm_temp_files:
             for file in files:
                 os.remove(os.path.join(path_in, file))
-        return CR
+        return list_CR
         
     
     else:
