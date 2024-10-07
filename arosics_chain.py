@@ -89,9 +89,10 @@ def harmonize_crs(input_path, ref_path, check_ref=True, compress_lzw=False):
 
         if compress_lzw:
             if ds_ref.profile.get('compress', 'Uncompressed')!='lzw':
-                ref_compr = False
-                metadata_ref.update(compress='lzw', bigtiff=True)
-                print(f"Reference image {ref_path} will be compressed")
+                pass
+                #ref_compr = False
+                #metadata_ref.update(compress='lzw', bigtiff=True)
+                #print(f"Reference image {ref_path} will be compressed")
             else:
                 print(f"No compression needed for reference image : {ref_path}")
         
@@ -202,7 +203,6 @@ def apply_saved_matrix(im_path, out_dir_path, metadata_path, GCP_path = None):
     extensions = ('.tif', '.tiff', '.TIF', '.TIFF')
     files = [file for file in sorted(os.listdir(im_path)) if file.endswith(extensions)]
     print("files : ", files)
-    
     for file in files:
         with open(metadata_path, 'rb') as file:
             coreg_info = pickle.load(file)
@@ -368,20 +368,22 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
                 current_file_path = os.path.join(path_in, file)
                 harmonize_crs(current_file_path, ref_filepath, check_ref = True if i==0 else False, compress_lzw=compress_lzw)
                 path_out = os.path.join(out_dir_path, file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
-                queue = multiprocessing.Queue()
-                process = multiprocessing.Process(target=call_arosics, args=(current_file_path, ref_filepath, path_out, corr_type, max_shift, max_iter, window_size, window_pos, mp, grid_res, save_data, save_vector_plot, queue))
-                process.start()
-                process.join(timeout=2)     
+                CR = call_arosics(current_file_path, ref_filepath, path_out=path_out, corr_type=corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_data=save_data)
+                #queue = multiprocessing.Queue()
+                #process = multiprocessing.Process(target=call_arosics, args=(current_file_path, ref_filepath, path_out, corr_type, max_shift, max_iter, window_size, window_pos, mp, grid_res, save_data, save_vector_plot, queue))
+                #process.start()
+                #process.join(timeout=2)     
                 # Terminate the process if needed (ensure cleanup)
-                CR = queue.get()
+                #CR = queue.get()
                 list_CR.append(CR)
+                """
                 if process.is_alive():
                     process.terminate() 
                     raise TimeoutError("The arosics process is taking too much time and has been terminated")
                 else:
                     process.terminate()
                     print("Process terminated successfully")
-
+                """
                 if dynamic_corr:
                     ref_filepath = path_out
                 
@@ -440,20 +442,22 @@ def complete_arosics_process(path_in, ref_filepath, out_dir_path, corr_type = 'g
             first_file = files[0]
             harmonize_crs(os.path.join(path_in, first_file), ref_filepath, compress_lzw=compress_lzw)
             path_out = os.path.join(out_dir_path, first_file.split('.')[0].replace("_temp", "") + f'_aligned_{corr_type}.tif')
-            queue = multiprocessing.Queue()
-            process = multiprocessing.Process(target=call_arosics, args=(os.path.join(path_in, first_file), ref_filepath, path_out, corr_type, max_shift, max_iter, window_size, window_pos, mp, grid_res, save_data, save_vector_plot, queue))
-            process.start()
-            process.join(timeout=2)    
+            CR = call_arosics(os.path.join(path_in, first_file), ref_filepath, path_out=path_out, corr_type=corr_type, mp=mp, window_size=window_size, window_pos=window_pos, max_shift=max_shift, max_iter=max_iter, grid_res=grid_res, save_vector_plot=save_vector_plot, save_data=save_data)
+            #queue = multiprocessing.Queue()
+            #process = multiprocessing.Process(target=call_arosics, args=(os.path.join(path_in, first_file), ref_filepath, path_out, corr_type, max_shift, max_iter, window_size, window_pos, mp, grid_res, save_data, save_vector_plot, queue))
+            #process.start()
+            #process.join(timeout=2)    
             # Terminate the process if needed (ensure cleanup)
-            CR = queue.get()
+            #CR = queue.get()
             list_CR.append(CR)
+            """
             if process.is_alive():
                 process.terminate() 
                 raise TimeoutError("The arosics process is taking too much time and has been terminated")
             else:
                 process.terminate()
                 print("Process terminated successfully")
-            
+            """
             for file in files[1:]:
                 current_file_path = os.path.join(path_in, file)
                 harmonize_crs(current_file_path, ref_filepath, check_ref=False, compress_lzw=compress_lzw)
