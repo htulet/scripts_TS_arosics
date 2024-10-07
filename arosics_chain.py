@@ -90,9 +90,9 @@ def harmonize_crs(input_path, ref_path, check_ref=True, compress_lzw=False):
         if compress_lzw:
             if ds_ref.profile.get('compress', 'Uncompressed')!='lzw':
                 pass
-                #ref_compr = False
-                #metadata_ref.update(compress='lzw', bigtiff=True)
-                #print(f"Reference image {ref_path} will be compressed")
+                ref_compr = False
+                metadata_ref.update(compress='lzw', bigtiff=True)
+                print(f"Reference image {ref_path} will be compressed")
             else:
                 print(f"No compression needed for reference image : {ref_path}")
         
