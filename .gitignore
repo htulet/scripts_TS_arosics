@@ -1,1 +1,6 @@
 tests_vecteurs/*
+*.pyc
+docs/build/*
+subprocess_test.py
+tests.ipynb
+tests.py
