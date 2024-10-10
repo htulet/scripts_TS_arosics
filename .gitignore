@@ -4,3 +4,5 @@ docs/build/*
 subprocess_test.py
 tests.ipynb
 tests.py
+tests_multiproc.py
+test_func.R
